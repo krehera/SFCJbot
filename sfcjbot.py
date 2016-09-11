@@ -47,9 +47,16 @@ async def on_message(message):
 			db_cursor.execute("""UPDATE users SET status='here' WHERE user=%s""",(message.author.id,))
 			db_connection.commit()
 			db_cursor.close()
-			await client.send_message(message.channel, "Your status was changed to 'here.'")
+			await client.send_message(message.author, "Your status was changed to 'here.'")
 			return
 
+		if command.startswith('afk'):
+			await add_new_user_if_needed(message)
+			db_cursor = db_connection.cursor()
+			db_cursor.execute("""UPDATE users SET status='afk' WHERE user=%s""",(message.author.id,))
+			db_connection.commit()
+			db_cursor.close()
+			await client.send_message(message.author, "Your status was changed to 'afk.'")
 		return
 		
 
