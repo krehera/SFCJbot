@@ -165,18 +165,25 @@ async def unqueue(message, command):
 			already_queued = await is_member_queued_for_game(message.author, a_game)
 			if already_queued:
 				db_cursor.execute("""SELECT games FROM users WHERE user=%s""",(message.author.id,))
-				users_games = db_cursor.fetchone()
+				users_games = list(db_cursor.fetchone())
 				if users_games:
-					if users_games.contains(a_game):
-						users_games.remove(a_game)
+					print("user is queued up for: "+str(users_games))
+					print("trying to unqueue: "+i)
+					if i in users_games:
+						users_games.remove(i)
+						print("new queue list: "+users_games)
 						db_cursor.execute("""UPDATE users SET games=%s WHERE user=%s""",(users_games,message.author.id))
 				db_cursor.execute("""SELECT players FROM games WHERE game=%s""",(a_game,))
-				games_players = db_cursor.fetchone()
+				games_players = list(db_cursor.fetchone())
 				if games_players:
-					print("games_players: "+games_players)
-					if games_players.contains(message.author.id):
+					print("games_players: "+str(games_players))
+					if message.author.id in games_players:
 						games_players.remove(message.author.id)
-						db_cursor.execute("""UPDATE games SET players=%s WHERE game=%s""",(games_players,a_game))
+						print("new games_players: "+str(games_players))
+						if not games_players:
+							db_cursor.execute("""UPDATE games SET players=NULL WHERE game=%s""",(i,))
+						else:
+							db_cursor.execute("""UPDATE games SET players=%s WHERE game=%s""",(games_players,i))
 				await client.send_message(message.author, "Removed you from the queue for "+a_game)
 			else:
 				await client.send_message(message.author, "You aren't in the queue for "+i)
