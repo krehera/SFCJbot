@@ -35,9 +35,10 @@ async def on_message(message):
 				return
 			results_list=[]
 			for i in results:
-				results_list.append('@'+i[0])
-			results_list.remove('@'+message.author.name)
-			challenge_message = 'Hey, ' + ", ".join(results_list) +' let\'s play some '+hopefully_a_game+' with '+'@'+message.author.name
+				results_list.append('server.get_member('+i[0]+').mention()')
+			if message.author.id in results_list:
+				results_list.remove(message.author.id)
+			challenge_message = 'Hey, ' + ", ".join(results_list) +' let\'s play some '+hopefully_a_game+' with '+message.author.mention
 			await client.send_message(message.channel, challenge_message)
 			return
 
