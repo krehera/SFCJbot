@@ -21,7 +21,6 @@ async def on_message(message):
 		command = command.lstrip()
 		if command.startswith('match '):
 			hopefully_a_game = command[6:]
-			print( "hopefully_a_game: "+hopefully_a_game)
 			if hopefully_a_game == '':
 				await client.send_message(message.channel, 'If you need help, too bad.')
 				return
@@ -93,15 +92,26 @@ async def on_message(message):
 			await queue(message, command)
 			return
 
-	#remove this bit after all debugging is done
+		if command.startswith('unqueue '):
+			command = command[8:]
+			await unqueue(message, command)
+			return
+
+		if command.startswith('unQ '):
+			command = command[4:]
+			await unqueue(message, command)
+			return
+
 	print (message.content)
 
 async def add_new_user_if_needed(message):
 	db_cursor = db_connection.cursor()
 	db_cursor.execute("""SELECT user FROM users WHERE user=%s""",(message.author.id,))
 	result = db_cursor.fetchone()
-	if result == '':
+	#print("add_new_user_if_needed found user: "+str(result))
+	if str(result) == 'None':
 		db_cursor.execute("""INSERT INTO users (user) VALUES (%s)""",(message.author.id,))
+		print("added user "+message.author.name+" as "+message.author.id)
 	db_connection.commit()
 	db_cursor.close()
 	return
@@ -111,9 +121,11 @@ async def queue(message, command):
 	hopefully_list_of_games = command.split(" ")
 	db_cursor = db_connection.cursor()
 	for i in hopefully_list_of_games:
+		#print("Searching for "+i)
 		db_cursor.execute("""SELECT game FROM games WHERE game=%s""",(i,))
-		a_game = db_cursor.fetchone()[0]
-		if a_game != "":
+		a_game = db_cursor.fetchone()
+		#print("found game "+ str(a_game))
+		if str(a_game) != "None":
 			already_queued = await is_member_queued_for_game(message.author, a_game)
 			if not already_queued:
 				db_cursor.execute("""UPDATE games SET players = concat(players,%s) WHERE game=%s""",(','+message.author.id,i[0]))
@@ -122,7 +134,7 @@ async def queue(message, command):
 			else:
 				await client.send_message(message.author, "You're already queued up for "+a_game+".")
 		else:
-			await client.send_message(message.author, "I\'ve never heard of a game called " + a_game)
+			await client.send_message(message.author, "I\'ve never heard of a game called " + i)
 	db_connection.commit()
 	db_cursor.close()	
 	return
@@ -130,13 +142,48 @@ async def queue(message, command):
 async def is_member_queued_for_game(member,game):
 	db_cursor = db_connection.cursor()
 	db_cursor.execute("""SELECT players FROM games WHERE game=%s""",(game,))
-	dbresult = db_cursor.fetchone()[0]
+	dbresult = db_cursor.fetchone()
 	db_cursor.close()
+	if not dbresult:
+		return False
+	dbresult = dbresult[0]
 	player_list = dbresult.split(",")
 	for i in player_list:
 		if i == member.id:
 			return True
 	return False
+
+async def unqueue(message, command):
+	await add_new_user_if_needed(message)
+	hopefully_list_of_games = command.split(" ")
+	db_cursor = db_connection.cursor()
+	for i in hopefully_list_of_games:
+		db_cursor.execute("""SELECT game FROM games WHERE game=%s""",(i,))
+		a_game = db_cursor.fetchone()[0]
+		if str(a_game) != "None":
+			already_queued = await is_member_queued_for_game(message.author, a_game)
+			if already_queued:
+				db_cursor.execute("""SELECT games FROM users WHERE user=%s""",(message.author.id,))
+				users_games = db_cursor.fetchone()
+				if users_games:
+					if users_games.contains(a_game):
+						users_games.remove(a_game)
+						db_cursor.execute("""UPDATE users SET games=%s WHERE user=%s""",(users_games,message.author.id))
+				db_cursor.execute("""SELECT players FROM games WHERE game=%s""",(a_game,))
+				games_players = db_cursor.fetchone()
+				if games_players:
+					print("games_players: "+games_players)
+					if games_players.contains(message.author.id):
+						games_players.remove(message.author.id)
+						db_cursor.execute("""UPDATE games SET players=%s WHERE game=%s""",(games_players,a_game))
+				await client.send_message(message.author, "Removed you from the queue for "+a_game)
+			else:
+				await client.send_message(message.author, "You aren't in the queue for "+a_game)
+		else:
+			await client.send_message(message.author, "I\'ve never heard of a game called " + i)
+	db_connection.commit()
+	db_cursor.close()
+	return
 
 @client.event
 async def on_ready():
