@@ -2,6 +2,8 @@
 
 commands:
 
+**help ** - links to the GitHub page so the user can see the README
+
 **queue [game]** - adds you to the queue for [game]
 
 **unqueue [game]** - removes you from the queue for [game]
