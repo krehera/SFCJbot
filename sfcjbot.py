@@ -1,6 +1,7 @@
 import discord
 import asyncio
 import MySQLdb
+import re
 
 client = discord.Client()
 
@@ -11,7 +12,6 @@ async def on_message(message):
 		return
 
 	if message.content.startswith('<@'+client.user.id+'>') or message.content.startswith('SFCJbot'):
-		await client.send_message(message.channel, 'received.')
 		command = message.content
 		if command.startswith('<@'+client.user.id+'>'):
 			idlength = len(client.user.id) + 3
@@ -20,7 +20,23 @@ async def on_message(message):
 			command = command[7:]
 		#remove whitespace from BEGINNING of command
 		command = command.lstrip()
-		
+		if command.startswith('match'):
+			hopefully_a_game = command[6:]
+			print( "hopefully_a_game: "+hopefully_a_game)
+			if hopefully_a_game == '':
+				await client.send_message(message.channel, 'If you need help, too bad.')
+				return
+			db_cursor.execute("""SELECT user FROM users JOIN games ON FIND_IN_SET(user,players) WHERE game=%s""", (hopefully_a_game,))
+			results = db_cursor.fetchall()
+			if results == '()':
+				await client.send_message(message.channel, 'Sorry, I couldn\'t find a match for you.')
+				return
+			results_list=[]
+			for i in results:
+				results_list.append('@'+i[0])
+			results_list.remove('@'+message.author.name)
+			challenge_message = 'Hey, ' + ", ".join(results_list) +' let\'s play some '+hopefully_a_game+' with '+'@'+message.author.name
+			await client.send_message(message.channel, challenge_message)
 		return
 
 	#remove this bit after all debugging is done
@@ -30,7 +46,7 @@ async def on_message(message):
 async def on_ready():
 	print('logged in as '+client.user.name)
 
-#This is probably the wrong way to do these things, but I don't care.
+#This is probably not the best way to do these things, but that's ok
 f = open('.token', 'r')
 token = f.readline().strip('\n')
 f.close()
@@ -40,4 +56,6 @@ db_pwd = f.readline().strip('\n')
 db_host = f.readline().strip('\n')
 db_db = f.readline().strip('\n')
 db_connection = MySQLdb.connect(user=db_user, passwd = db_pwd, host=db_host, db=db_db)
+db_cursor = db_connection.cursor()
 client.run(token)
+
