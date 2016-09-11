@@ -20,7 +20,7 @@ async def on_message(message):
 			command = command[7:]
 		#remove whitespace from BEGINNING of command
 		command = command.lstrip()
-		if command.startswith('match'):
+		if command.startswith('match '):
 			hopefully_a_game = command[6:]
 			print( "hopefully_a_game: "+hopefully_a_game)
 			if hopefully_a_game == '':
@@ -58,8 +58,41 @@ async def on_message(message):
 			db_connection.commit()
 			db_cursor.close()
 			await client.send_message(message.author, "Your status was changed to 'afk.'")
-		return
+			return
 		
+		if command.startswith('region '):
+			hopefully_a_region = command[7:]
+			await add_new_user_if_needed(message)
+			db_cursor = db_connection.cursor()
+			db_cursor.execute("""UPDATE users SET region=%s WHERE user=%s""",(hopefully_a_region,message.author.id))
+			db_connection.commit()
+			db_cursor.close()
+			await client.send_message(message.author, "Your region has been set to "+hopefully_a_region+".")
+			return
+
+		if command.startswith('games'):
+			db_cursor = db_connection.cursor()
+			db_cursor.execute("""SELECT game FROM games""")
+			games = db_cursor.fetchall()
+			db_cursor.execute("""SELECT game FROM games WHERE players IS NOT NULL""")
+			games_with_players = db_cursor.fetchall()
+			db_cursor.close()
+			games_list = []
+			for i in games:
+				games_list.append(i[0])
+			games_message = 'I offer the following games: '+ ", ".join(games_list) + "."
+			await client.send_message(message.author, games_message)
+			return
+
+		if command.startswith('queue '):
+			command = command[6:]
+			await queue(message, command)
+			return
+
+		if command.startswith('Q '):
+			command = command[2:]
+			await queue(message, command)
+			return
 
 	#remove this bit after all debugging is done
 	print (message.content)
@@ -72,6 +105,21 @@ async def add_new_user_if_needed(message):
 		db_cursor.execute("""INSERT INTO users (user) VALUES (%s)""",(message.author.id,))
 	db_connection.commit()
 	db_cursor.close()
+	return
+
+async def queue(message, command):
+	await add_new_user_if_needed(message)
+	hopefully_list_of_games = [command.split()]
+	db_cursor = db_connection.cursor()
+	for i in hopefully_list_of_games:
+		db_cursor.execute("""SELECT game FROM games WHERE game=%s""",(i,))
+		a_game = db_cursor.fetchone()[0]
+		if a_game != "":
+			db_cursor.execute("""UPDATE games SET players = concat(players,%s) WHERE game=%s""",(','+message.author.id,i[0]))
+			db_cursor.execute("""UPDATE users SET games = concat(games,%s) WHERE user=%s""",(','+i[0],message.author.id))
+		await client.send_message(message.author, "Added you to the queue for "+i[0]+".")
+	db_connection.commit()
+	db_cursor.close()	
 	return
 
 @client.event
