@@ -40,6 +40,10 @@ async def on_message(message):
 			await client.send_message(message.channel, challenge_message)
 			return
 
+		if command.startswith('help'):
+			await client.send_message(message.author, "I\'m SFCJbot! I help SFCJ members play their favorite fighting games! Check out https://github.com/krehera/SFCJbot for documentation.")
+			return
+
 		if command.startswith('here'):
 			await add_new_user_if_needed(message)
 			db_cursor = db_connection.cursor()
