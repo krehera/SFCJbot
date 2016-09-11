@@ -1,7 +1,6 @@
 import discord
 import asyncio
 import MySQLdb
-import re
 
 client = discord.Client()
 
@@ -109,18 +108,35 @@ async def add_new_user_if_needed(message):
 
 async def queue(message, command):
 	await add_new_user_if_needed(message)
-	hopefully_list_of_games = [command.split()]
+	hopefully_list_of_games = command.split(" ")
 	db_cursor = db_connection.cursor()
 	for i in hopefully_list_of_games:
 		db_cursor.execute("""SELECT game FROM games WHERE game=%s""",(i,))
 		a_game = db_cursor.fetchone()[0]
 		if a_game != "":
-			db_cursor.execute("""UPDATE games SET players = concat(players,%s) WHERE game=%s""",(','+message.author.id,i[0]))
-			db_cursor.execute("""UPDATE users SET games = concat(games,%s) WHERE user=%s""",(','+i[0],message.author.id))
-		await client.send_message(message.author, "Added you to the queue for "+i[0]+".")
+			already_queued = await is_member_queued_for_game(message.author, a_game)
+			if not already_queued:
+				db_cursor.execute("""UPDATE games SET players = concat(players,%s) WHERE game=%s""",(','+message.author.id,i[0]))
+				db_cursor.execute("""UPDATE users SET games = concat(games,%s) WHERE user=%s""",(','+i[0],message.author.id))
+				await client.send_message(message.author, "Added you to the queue for " + a_game)
+			else:
+				await client.send_message(message.author, "You're already queued up for "+a_game+".")
+		else:
+			await client.send_message(message.author, "I\'ve never heard of a game called " + a_game)
 	db_connection.commit()
 	db_cursor.close()	
 	return
+
+async def is_member_queued_for_game(member,game):
+	db_cursor = db_connection.cursor()
+	db_cursor.execute("""SELECT players FROM games WHERE game=%s""",(game,))
+	dbresult = db_cursor.fetchone()[0]
+	db_cursor.close()
+	player_list = dbresult.split(",")
+	for i in player_list:
+		if i == member.id:
+			return True
+	return False
 
 @client.event
 async def on_ready():
