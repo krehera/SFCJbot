@@ -102,6 +102,19 @@ async def on_message(message):
 			await unqueue(message, command)
 			return
 
+		if command.startswith('addgame '):
+			command = command[8:]
+			if message.author.permissions_in(message.channel).kick_members:
+				game_to_add = command
+				db_cursor = db_connection.cursor()
+				db_cursor.execute("""INSERT INTO games (game) VALUES (%s)""",(game_to_add,))
+				db_connection.commit()
+				db_cursor.close()
+				await client.send_message(message.author, "added game "+game_to_add+". If you messed up, ping the bot owner!")
+			else:
+				await client.send_message(message.author, "You don't have permission to add games.")
+			return
+
 	print (message.content)
 
 async def add_new_user_if_needed(message):
@@ -146,7 +159,7 @@ async def is_member_queued_for_game(member,game):
 	db_cursor.close()
 	if str(dbresult) == "None":
 		return False
-	print(str(dbresult))
+	#print(str(dbresult))
 	dbresult = str(dbresult[0])
 	playerlist = dbresult.split(",")
 	for i in playerlist:
@@ -167,19 +180,19 @@ async def unqueue(message, command):
 				db_cursor.execute("""SELECT games FROM users WHERE user=%s""",(message.author.id,))
 				users_games = list(db_cursor.fetchone())
 				if users_games:
-					print("user is queued up for: "+str(users_games))
-					print("trying to unqueue: "+i)
+					#print("user is queued up for: "+str(users_games))
+					#print("trying to unqueue: "+i)
 					if i in users_games:
 						users_games.remove(i)
-						print("new queue list: "+users_games)
+						#print("new queue list: "+users_games)
 						db_cursor.execute("""UPDATE users SET games=%s WHERE user=%s""",(users_games,message.author.id))
 				db_cursor.execute("""SELECT players FROM games WHERE game=%s""",(a_game,))
 				games_players = list(db_cursor.fetchone())
 				if games_players:
-					print("games_players: "+str(games_players))
+					#print("games_players: "+str(games_players))
 					if message.author.id in games_players:
 						games_players.remove(message.author.id)
-						print("new games_players: "+str(games_players))
+						#print("new games_players: "+str(games_players))
 						if not games_players:
 							db_cursor.execute("""UPDATE games SET players=NULL WHERE game=%s""",(i,))
 						else:
