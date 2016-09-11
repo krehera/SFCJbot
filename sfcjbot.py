@@ -128,11 +128,11 @@ async def queue(message, command):
 		if str(a_game) != "None":
 			already_queued = await is_member_queued_for_game(message.author, a_game)
 			if not already_queued:
-				db_cursor.execute("""UPDATE games SET players = concat(players,%s) WHERE game=%s""",(','+message.author.id,i[0]))
-				db_cursor.execute("""UPDATE users SET games = concat(games,%s) WHERE user=%s""",(','+i[0],message.author.id))
-				await client.send_message(message.author, "Added you to the queue for " + a_game)
+				db_cursor.execute("""UPDATE games SET players = IFNULL(CONCAT(players,%s),%s) WHERE game=%s""",(','+message.author.id,message.author.id,i))
+				db_cursor.execute("""UPDATE users SET games = IFNULL(CONCAT(games,%s),%s) WHERE user=%s""",(','+i,i,message.author.id))
+				await client.send_message(message.author, "Added you to the queue for " + i)
 			else:
-				await client.send_message(message.author, "You're already queued up for "+a_game+".")
+				await client.send_message(message.author, "You're already queued up for "+i+".")
 		else:
 			await client.send_message(message.author, "I\'ve never heard of a game called " + i)
 	db_connection.commit()
@@ -144,11 +144,12 @@ async def is_member_queued_for_game(member,game):
 	db_cursor.execute("""SELECT players FROM games WHERE game=%s""",(game,))
 	dbresult = db_cursor.fetchone()
 	db_cursor.close()
-	if not dbresult:
+	if str(dbresult) == "None":
 		return False
-	dbresult = dbresult[0]
-	player_list = dbresult.split(",")
-	for i in player_list:
+	print(str(dbresult))
+	dbresult = str(dbresult[0])
+	playerlist = dbresult.split(",")
+	for i in playerlist:
 		if i == member.id:
 			return True
 	return False
@@ -178,7 +179,7 @@ async def unqueue(message, command):
 						db_cursor.execute("""UPDATE games SET players=%s WHERE game=%s""",(games_players,a_game))
 				await client.send_message(message.author, "Removed you from the queue for "+a_game)
 			else:
-				await client.send_message(message.author, "You aren't in the queue for "+a_game)
+				await client.send_message(message.author, "You aren't in the queue for "+i)
 		else:
 			await client.send_message(message.author, "I\'ve never heard of a game called " + i)
 	db_connection.commit()
