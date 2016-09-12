@@ -25,7 +25,7 @@ async def on_message(message):
 				await client.send_message(message.channel, 'If you need help, too bad.')
 				return
 			db_cursor = db_connection.cursor()
-			db_cursor.execute("""SELECT user FROM users JOIN games ON FIND_IN_SET(user,players) WHERE game=%s""", (hopefully_a_game,))
+			db_cursor.execute("""SELECT user FROM users JOIN games ON FIND_IN_SET(user,players) WHERE game=%s AND status='here'""", (hopefully_a_game,))
 			results = db_cursor.fetchall()
 			db_cursor.close()
 			if results == '()':
