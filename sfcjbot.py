@@ -28,8 +28,8 @@ async def on_message(message):
 			db_cursor.execute("""SELECT user FROM users JOIN games ON FIND_IN_SET(user,players) WHERE game=%s AND status='here'""", (hopefully_a_game,))
 			results = db_cursor.fetchall()
 			db_cursor.close()
-			if results == '()':
-				await client.send_message(message.channel, 'Sorry, I couldn\'t find a match for you.')
+			if len(results) < 2:
+				await client.send_message(message.channel, 'Sorry, I couldn\'t find a match for you.\nDed gaem lmao')
 				return
 			results_list=[]
 			for i in results:
