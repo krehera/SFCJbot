@@ -33,9 +33,10 @@ async def on_message(message):
 				return
 			results_list=[]
 			for i in results:
-				results_list.append('server.get_member('+i[0]+').mention()')
-			if message.author.id in results_list:
-				results_list.remove(message.author.id)
+				tmp_string = str(message.server.get_member(i[0]).mention)
+				results_list.append(tmp_string)
+			if message.author.mention in results_list:
+				results_list.remove(message.author.mention)
 			challenge_message = 'Hey, ' + ", ".join(results_list) +' let\'s play some '+hopefully_a_game+' with '+message.author.mention
 			await client.send_message(message.channel, challenge_message)
 			return
@@ -118,8 +119,6 @@ async def on_message(message):
 			else:
 				await client.send_message(message.author, "You don't have permission to add games.")
 			return
-
-	print (message.content)
 
 async def add_new_user_if_needed(message):
 	db_cursor = db_connection.cursor()
