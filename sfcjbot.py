@@ -1,6 +1,7 @@
 import discord
 import asyncio
 import MySQLdb
+from datetime import datetime
 
 client = discord.Client()
 
@@ -11,6 +12,7 @@ async def on_message(message):
 		return
 
 	if message.content.startswith('<@'+client.user.id+'>') or message.content.startswith('SFCJbot'):
+		await check_db_connection()
 		command = message.content
 		if command.startswith('<@'+client.user.id+'>'):
 			idlength = len(client.user.id) + 3
@@ -121,6 +123,7 @@ async def on_message(message):
 			return
 
 async def add_new_user_if_needed(message):
+	await check_db_connection()
 	db_cursor = db_connection.cursor()
 	db_cursor.execute("""SELECT user FROM users WHERE user=%s""",(message.author.id,))
 	result = db_cursor.fetchone()
@@ -156,6 +159,7 @@ async def queue(message, command):
 	return
 
 async def is_member_queued_for_game(member,game):
+	await check_db_connection()
 	db_cursor = db_connection.cursor()
 	db_cursor.execute("""SELECT players FROM games WHERE game=%s""",(game,))
 	dbresult = db_cursor.fetchone()
@@ -209,10 +213,21 @@ async def unqueue(message, command):
 	db_cursor.close()
 	return
 
+async def check_db_connection():
+	global db_connection
+	try:
+		db_cursor = db_connection.cursor()
+		db_cursor.close()
+	except (AttributeError, MySQLdb.OperationalError):
+		db_connection = MySQLdb.connect(user=db_user, passwd = db_pwd, host=db_host, db=db_db)
+		print(str(datetime.now())+"	DB connection timed out and reestablished.")
+	return
+
 @client.event
 async def on_ready():
 	print('logged in as '+client.user.name)
 
+global db_connection
 #This is probably not the best way to do these things, but that's ok
 f = open('.token', 'r')
 token = f.readline().strip('\n')
