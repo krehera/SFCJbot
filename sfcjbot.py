@@ -12,7 +12,6 @@ async def on_message(message):
 		return
 
 	if any(x.id == client.user.id for x in message.mentions) or message.content.startswith('SFCJbot'):
-		db_connection.ping()
 		command = message.content
 
 		if "match" in command:
@@ -20,10 +19,9 @@ async def on_message(message):
 			if hopefully_a_game == '':
 				await client.send_message(message.channel, 'If you need help, too bad.')
 				return
-			results = await db_wrapper.execute(message.author, "SELECT user FROM users JOIN games ON FIND_IN_SET(user,players) WHERE game="+hopefullly_a_game+" AND status='here'")
+			results = await db_wrapper(message.author, "SELECT user FROM users JOIN games ON FIND_IN_SET(user,players) WHERE game='"+hopefully_a_game+"' AND status='here'")
 			print("match results: "+str(results))
-			#FIXME should remove message.author from list and then check if < 1
-			if len(results) < 2:
+			if results is None:
 				await client.send_message(message.channel, 'Sorry, I couldn\'t find a match for you.\nDed gaem lmao')
 				return
 			results_list=[]
@@ -32,6 +30,9 @@ async def on_message(message):
 				results_list.append(tmp_string)
 			if message.author.mention in results_list:
 				results_list.remove(message.author.mention)
+			if len(results_list)<1:
+				await client.send_message(message.channel, 'Sorry, I couldn\'t find a match for you.\nDed gaem lmao')
+				return
 			challenge_message = 'Hey, ' + ", ".join(results_list) +' let\'s play some '+hopefully_a_game+' with '+message.author.mention
 			await client.send_message(message.channel, challenge_message)
 			return
@@ -74,7 +75,7 @@ async def on_message(message):
 			await client.send_message(message.author, games_message)
 			return
 
-		if "unqueue" in command.lower():
+		if "unqueue" in command:
 			command = command.split('unqueue', 1)[-1].lstrip()
 			await unqueue(message, command)
 			return
@@ -84,7 +85,7 @@ async def on_message(message):
 			await queue(message, command)
 			return
 
-		if "queue" in command.lower():
+		if "queue" in command:
 			command = command.split('queue', 1)[-1].lstrip()
 			await queue(message, command)
 			return
@@ -94,11 +95,11 @@ async def on_message(message):
 			await unqueue(message, command)
 			return
 
-		if command.startswith('addgame '):
-			command = command[8:]
+		if "addgame" in command:
+			command = command.split('addgame', 1)[-1].lstrip()
 			if message.author.permissions_in(message.channel).kick_members:
 				game_to_add = command
-				add_game="INSERT INTO games (game) VALUES ("+game_to_add+")"
+				add_game="INSERT INTO games (game) VALUES ('"+game_to_add+"')"
 				await db_wrapper(message.author, add_game)
 				print(str(datetime.now())+": added game "+game_to_add)
 				await client.send_message(message.author, "added game "+game_to_add+". If you messed up, ping the bot owner!")
@@ -125,8 +126,8 @@ async def queue(message, command):
 	for i in hopefully_list_of_games:
 		#print("Searching for "+i)
 		a_game = await db_wrapper(message.author, "SELECT game FROM games WHERE game='"+i+"'")
-		print("found game "+ str(a_game))
-		if str(a_game) != "None":
+		#print("found game "+ str(a_game))
+		if str(a_game) != "()":
 			already_queued = await is_member_queued_for_game(message.author, i)
 			if not already_queued:
 				await db_wrapper(message.author, "UPDATE games SET players = IFNULL(CONCAT(players,',"+message.author.id+"'),'"+message.author.id+"') WHERE game='"+i+"'")
@@ -143,10 +144,9 @@ async def queue(message, command):
 async def is_member_queued_for_game(member, game):
 	dbresult = await db_wrapper(member, "SELECT players FROM games WHERE game='"+game+"'")
 	#print("is_member_queued_for_game result: "+str(dbresult))
-	if str(dbresult) == "None":
+	playerlist = str(dbresult[0][0]).split(",")
+	if str(playerlist) == "None":
 		return False
-	dbresult = str(dbresult[0])
-	playerlist = dbresult.split(",")
 	for i in playerlist:
 		if i == member.id:
 			return True
@@ -157,12 +157,12 @@ async def unqueue(message, command):
 	hopefully_list_of_games = command.split(" ")
 	for i in hopefully_list_of_games:
 		a_game = await db_wrapper(message.author, "SELECT game FROM games WHERE game='"+i+"'")
-		if str(a_game) != "None":
+		if str(a_game) != "()":
 			already_queued = await is_member_queued_for_game(message.author, i)
 			if already_queued:
-				users_games_unformatted = await db_wrapper("SELECT games FROM users WHERE user='"+message.author.id+"'")
+				users_games_unformatted = await db_wrapper(message.author, "SELECT games FROM users WHERE user='"+message.author.id+"'")
 				users_games = list(users_games_unformatted)
-				print("user's games: "+str(users_games))
+				#print("user's games: "+str(users_games))
 				if users_games:
 					#print("user is queued up for: "+str(users_games))
 					#print("trying to unqueue: "+i)
@@ -170,10 +170,9 @@ async def unqueue(message, command):
 						users_games.remove(i)
 						#print("new queue list: "+users_games)
 						await db_wrapper(message.author, "UPDATE users SET games='"+users_games+"' WHERE user='"+message.author.id+"'")
-				db_cursor.execute("""SELECT players FROM games WHERE game=%s""",(a_game,))
-				games_players_unformatted = await db_wrapper(message.author, "SELECT players FROM games WHERE game='"+a_game+"'")
+				games_players_unformatted = await db_wrapper(message.author, "SELECT players FROM games WHERE game='"+i+"'")
 				print("game's players: "+str(games_players_unformatted))
-				games_players = games_players_unformatted[0].split(',')
+				games_players = games_players_unformatted[0][0].split(',')
 				if games_players:
 					#print("games_players: "+str(games_players))
 					if message.author.id in games_players:
@@ -186,7 +185,7 @@ async def unqueue(message, command):
 							update_list_of_players="UPDATE games SET players='"+new_list_of_players+"' WHERE game='"+i+"'"
 							await db_wrapper(message.author, update_list_of_players)
 				print(str(datetime.now())+": removed "+message.author.name+" from the queue for "+i)
-				await client.send_message(message.author, "Removed you from the queue for "+a_game)
+				await client.send_message(message.author, "Removed you from the queue for "+i)
 			else:
 				await client.send_message(message.author, "You aren't in the queue for "+i)
 		else:
@@ -195,7 +194,7 @@ async def unqueue(message, command):
 
 @client.event
 async def on_ready():
-	print('logged in as '+client.user.name)
+	print(str(datetime.now()) + ": logged in as "+client.user.name)
 	return
 
 async def db_wrapper(member, execute):
@@ -223,6 +222,5 @@ db_user = f.readline().strip('\n')
 db_pwd = f.readline().strip('\n')
 db_host = f.readline().strip('\n')
 db_db = f.readline().strip('\n')
-db_connection = MySQLdb.connect(user=db_user, passwd = db_pwd, host=db_host, db=db_db)
 client.run(token)
 
