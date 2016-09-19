@@ -11,18 +11,12 @@ async def on_message(message):
 	if message.author == client.user:
 		return
 
-	if message.content.startswith('<@'+client.user.id+'>') or message.content.startswith('SFCJbot'):
+	if any(x.id == client.user.id for x in message.mentions) or message.content.startswith('SFCJbot'):
 		db_connection.ping()
 		command = message.content
-		if command.startswith('<@'+client.user.id+'>'):
-			idlength = len(client.user.id) + 3
-			command = command[idlength:]
-		else:
-			command = command[7:]
-		#remove whitespace from BEGINNING of command
-		command = command.lstrip()
-		if command.startswith('match '):
-			hopefully_a_game = command[6:]
+
+		if "match" in command:
+			hopefully_a_game = command.split('match', 1)[-1].lstrip()
 			if hopefully_a_game == '':
 				await client.send_message(message.channel, 'If you need help, too bad.')
 				return
@@ -43,11 +37,11 @@ async def on_message(message):
 			await client.send_message(message.channel, challenge_message)
 			return
 
-		if command.startswith('help'):
+		if "help" in command.lower():
 			await client.send_message(message.author, "I\'m SFCJbot! I help SFCJ members play their favorite fighting games! Check out https://github.com/krehera/SFCJbot for documentation.")
 			return
 
-		if command.startswith('here'):
+		if "here" in command.lower():
 			await add_new_user_if_needed(message)
 			db_cursor = db_connection.cursor()
 			db_cursor.execute("""UPDATE users SET status='here' WHERE user=%s""",(message.author.id,))
@@ -56,7 +50,7 @@ async def on_message(message):
 			await client.send_message(message.author, "Your status was changed to 'here.'")
 			return
 
-		if command.startswith('afk'):
+		if "afk" in command.lower() or "away" in command.lower():
 			await add_new_user_if_needed(message)
 			db_cursor = db_connection.cursor()
 			db_cursor.execute("""UPDATE users SET status='afk' WHERE user=%s""",(message.author.id,))
@@ -65,8 +59,8 @@ async def on_message(message):
 			await client.send_message(message.author, "Your status was changed to 'afk.'")
 			return
 		
-		if command.startswith('region '):
-			hopefully_a_region = command[7:]
+		if "region" in command.lower():
+			hopefully_a_region = command.split('region', 1)[-1].lstrip()
 			await add_new_user_if_needed(message)
 			db_cursor = db_connection.cursor()
 			db_cursor.execute("""UPDATE users SET region=%s WHERE user=%s""",(hopefully_a_region,message.author.id))
@@ -75,7 +69,7 @@ async def on_message(message):
 			await client.send_message(message.author, "Your region has been set to "+hopefully_a_region+".")
 			return
 
-		if command.startswith('games'):
+		if "games" in command.lower():
 			db_cursor = db_connection.cursor()
 			db_cursor.execute("""SELECT game FROM games""")
 			games = db_cursor.fetchall()
@@ -89,8 +83,8 @@ async def on_message(message):
 			await client.send_message(message.author, games_message)
 			return
 
-		if command.startswith('queue '):
-			command = command[6:]
+		if "queue" in command.lower():
+			command = command.split('queue', 1)[-1].lstrip()
 			await queue(message, command)
 			return
 
@@ -99,8 +93,8 @@ async def on_message(message):
 			await queue(message, command)
 			return
 
-		if command.startswith('unqueue '):
-			command = command[8:]
+		if "unqueue" in command.lower():
+			command = command.split('unqueue', 1)[-1].lstrip()
 			await unqueue(message, command)
 			return
 
@@ -121,6 +115,15 @@ async def on_message(message):
 			else:
 				await client.send_message(message.author, "You don't have permission to add games.")
 			return
+
+		print("content: " + message.content)
+		print("mention ids: " + ", ".join(str(x.id) for x in message.mentions))
+		print("my id::::::: " + client.user.id )
+		if any(x.id == client.user.id for x in message.mentions):
+			print ("I was mentioned")
+
+
+
 
 async def add_new_user_if_needed(message):
 	db_connection.ping()
