@@ -12,7 +12,7 @@ async def on_message(message):
 		return
 
 	if message.content.startswith('<@'+client.user.id+'>') or message.content.startswith('SFCJbot'):
-		await check_db_connection()
+		db_connection.ping()
 		command = message.content
 		if command.startswith('<@'+client.user.id+'>'):
 			idlength = len(client.user.id) + 3
@@ -123,7 +123,7 @@ async def on_message(message):
 			return
 
 async def add_new_user_if_needed(message):
-	await check_db_connection()
+	db_connection.ping()
 	db_cursor = db_connection.cursor()
 	db_cursor.execute("""SELECT user FROM users WHERE user=%s""",(message.author.id,))
 	result = db_cursor.fetchone()
@@ -159,7 +159,7 @@ async def queue(message, command):
 	return
 
 async def is_member_queued_for_game(member,game):
-	await check_db_connection()
+	db_connection.ping()
 	db_cursor = db_connection.cursor()
 	db_cursor.execute("""SELECT players FROM games WHERE game=%s""",(game,))
 	dbresult = db_cursor.fetchone()
@@ -211,16 +211,6 @@ async def unqueue(message, command):
 			await client.send_message(message.author, "I\'ve never heard of a game called " + i)
 	db_connection.commit()
 	db_cursor.close()
-	return
-
-async def check_db_connection():
-	global db_connection
-	try:
-		db_cursor = db_connection.cursor()
-		db_cursor.close()
-	except (AttributeError, MySQLdb.OperationalError):
-		db_connection = MySQLdb.connect(user=db_user, passwd = db_pwd, host=db_host, db=db_db)
-		print(str(datetime.now())+"	DB connection timed out and reestablished.")
 	return
 
 @client.event
