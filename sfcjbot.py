@@ -116,14 +116,9 @@ async def on_message(message):
 				await client.send_message(message.author, "You don't have permission to add games.")
 			return
 
-		print("content: " + message.content)
-		print("mention ids: " + ", ".join(str(x.id) for x in message.mentions))
-		print("my id::::::: " + client.user.id )
-		if any(x.id == client.user.id for x in message.mentions):
-			print ("I was mentioned")
-
-
-
+		if "about" in command.lower():
+			client.send_message(message.author, "SFCJbot is running on a Raspberry Pi and is powered by the following technologies:\nRaspbian GNU/Linux 8 (jessie)\nPython 3.5\nDiscord.py\nMySQLdb")
+			return
 
 async def add_new_user_if_needed(message):
 	db_connection.ping()
