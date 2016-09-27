@@ -14,6 +14,7 @@ commands:
 
 **match [game]** - pings everyone queued up for [game] that's here
 
+**describe [name]** - tells you what games [user] is queued up for. Don't mention them, just type their name.
 
 
 mod-only commands:

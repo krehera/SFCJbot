@@ -19,7 +19,10 @@ async def on_message(message):
 			if hopefully_a_game == '':
 				await client.send_message(message.channel, 'If you need help, too bad.')
 				return
-			results = await db_wrapper(message.author, "SELECT user FROM users JOIN games ON FIND_IN_SET(user,players) WHERE game='"+hopefully_a_game+"' AND status='here'")
+				#TODO use this instead of the above when it's actually coded.
+				await match_random_game(message.author)
+				return
+			results = await db_wrapper(message.author, "SELECT user FROM users JOIN games ON FIND_IN_SET(user,players) WHERE game='"+hopefully_a_game+"' AND status='here'", True)
 			print("match results: "+str(results))
 			if results is None:
 				await client.send_message(message.channel, 'Sorry, I couldn\'t find a match for you.\nDed gaem lmao')
@@ -43,14 +46,14 @@ async def on_message(message):
 
 		if "here" in command.lower():
 			await add_new_user_if_needed(message)
-			await db_wrapper(message.author, "UPDATE users SET status='here' WHERE user=" + message.author.id)
+			await db_wrapper(message.author, "UPDATE users SET status='here' WHERE user=" + message.author.id, True)
 			print(str(datetime.now())+": set "+message.author.name+" to here.")
 			await client.send_message(message.author, "Your status was changed to 'here.'")
 			return
 
 		if "afk" in command.lower() or "away" in command.lower():
 			await add_new_user_if_needed(message)
-			await db_wrapper(message.author, "UPDATE users SET status='afk' WHERE user="+message.author.id)
+			await db_wrapper(message.author, "UPDATE users SET status='afk' WHERE user="+message.author.id, True)
 			print(str(datetime.now())+": set "+message.author.name+" to afk.")
 			await client.send_message(message.author, "Your status was changed to 'afk.'")
 			return
@@ -66,13 +69,26 @@ async def on_message(message):
 			return
 
 		if "games" in command.lower():
-			games = await db_wrapper(message.author, "SELECT game FROM games")
+			games = await db_wrapper(message.author, "SELECT game FROM games", True)
 			print(str(datetime.now())+": found games: "+str(games))
 			games_list = []
 			for i in games:
 				games_list.append(i[0])
 			games_message = 'I offer the following games: '+ ", ".join(games_list) + "."
 			await client.send_message(message.author, games_message)
+			return
+
+		if "describe" in command.lower():
+			command = command.split('describe', 1)[-1].lstrip().rstrip()
+			users_games = await db_wrapper(message.author, "SELECT games FROM users WHERE username ='"+command+"'", False)
+			users_games = users_games[0][0]
+			if users_games:
+				users_games = users_games.split(",")
+				await client.send_message(message.author, command+" is queued up for "+", ".join(users_games))
+				print(str(datetime.now())+": told "+message.author.name+" that "+command+" is queued up for "+", ".join(users_games))
+			else:
+				await client.send_message(message.author, command+" isn't queued up for any games.")
+				print(str(datetime.now())+": told "+message.author.name+" that "+command+" is not queued up for any games.")
 			return
 
 		if "unqueue" in command:
@@ -100,7 +116,7 @@ async def on_message(message):
 			if message.author.permissions_in(message.channel).kick_members:
 				game_to_add = command
 				add_game="INSERT INTO games (game) VALUES ('"+game_to_add+"')"
-				await db_wrapper(message.author, add_game)
+				await db_wrapper(message.author, add_game, True)
 				print(str(datetime.now())+": added game "+game_to_add)
 				await client.send_message(message.author, "added game "+game_to_add+". If you messed up, ping the bot owner!")
 			else:
@@ -112,12 +128,19 @@ async def on_message(message):
 			return
 
 async def add_new_user_if_needed(message):
+	#This method also catches nickname changes (with the lower part there)
 	search_for_user = "SELECT user FROM users WHERE user="+message.author.id
-	result = await db_wrapper(message.author, search_for_user)
+	result = await db_wrapper(message.author, search_for_user, True)
 	#print("add_new_user_if_needed found user: "+str(result[0][0]))
 	if str(result) == 'None':
-		await db_wrapper(message.author, "INSERT INTO users (user) VALUES ("+message.author.id+")")
-		print("added user "+message.author.name+" as "+message.author.id)
+		await db_wrapper(message.author, "INSERT INTO users (user) VALUES ("+message.author.id+")", True)
+		print(str(datetime.now())+": added user "+message.author.id)
+
+	search_for_user = "SELECT username FROM users WHERE user="+message.author.id
+	result = await db_wrapper(message.author, search_for_user, True)
+	if str(result) != message.author.name:
+		await db_wrapper(message.author, "UPDATE users SET username='"+message.author.name+"' WHERE user='"+message.author.id+"'", True)
+		print(str(datetime.now())+": set user "+message.author.id+" to username "+message.author.name)
 	return
 
 async def queue(message, command):
@@ -125,13 +148,13 @@ async def queue(message, command):
 	hopefully_list_of_games = command.split(" ")
 	for i in hopefully_list_of_games:
 		#print("Searching for "+i)
-		a_game = await db_wrapper(message.author, "SELECT game FROM games WHERE game='"+i+"'")
+		a_game = await db_wrapper(message.author, "SELECT game FROM games WHERE game='"+i+"'", True)
 		#print("found game "+ str(a_game))
 		if str(a_game) != "()":
 			already_queued = await is_member_queued_for_game(message.author, i)
 			if not already_queued:
-				await db_wrapper(message.author, "UPDATE games SET players = IFNULL(CONCAT(players,',"+message.author.id+"'),'"+message.author.id+"') WHERE game='"+i+"'")
-				await db_wrapper(message.author, "UPDATE users SET games = IFNULL(CONCAT(games,',"+i+"'),'"+i+"') WHERE user="+message.author.id)
+				await db_wrapper(message.author, "UPDATE games SET players = IFNULL(CONCAT(players,',"+message.author.id+"'),'"+message.author.id+"') WHERE game='"+i+"'", True)
+				await db_wrapper(message.author, "UPDATE users SET games = IFNULL(CONCAT(games,',"+i+"'),'"+i+"') WHERE user="+message.author.id, True)
 				print(str(datetime.now())+": added "+message.author.name+" to the queue for "+i)
 				await client.send_message(message.author, "Added you to the queue for " + i)
 			else:
@@ -142,7 +165,7 @@ async def queue(message, command):
 	return
 
 async def is_member_queued_for_game(member, game):
-	dbresult = await db_wrapper(member, "SELECT players FROM games WHERE game='"+game+"'")
+	dbresult = await db_wrapper(member, "SELECT players FROM games WHERE game='"+game+"'", True)
 	#print("is_member_queued_for_game result: "+str(dbresult))
 	playerlist = str(dbresult[0][0]).split(",")
 	if str(playerlist) == "None":
@@ -156,11 +179,11 @@ async def unqueue(message, command):
 	await add_new_user_if_needed(message)
 	hopefully_list_of_games = command.split(" ")
 	for i in hopefully_list_of_games:
-		a_game = await db_wrapper(message.author, "SELECT game FROM games WHERE game='"+i+"'")
+		a_game = await db_wrapper(message.author, "SELECT game FROM games WHERE game='"+i+"'", True)
 		if str(a_game) != "()":
 			already_queued = await is_member_queued_for_game(message.author, i)
 			if already_queued:
-				users_games_unformatted = await db_wrapper(message.author, "SELECT games FROM users WHERE user='"+message.author.id+"'")
+				users_games_unformatted = await db_wrapper(message.author, "SELECT games FROM users WHERE user='"+message.author.id+"'", True)
 				users_games = list(users_games_unformatted)
 				#print("user's games: "+str(users_games))
 				if users_games:
@@ -169,8 +192,8 @@ async def unqueue(message, command):
 					if i in users_games:
 						users_games.remove(i)
 						#print("new queue list: "+users_games)
-						await db_wrapper(message.author, "UPDATE users SET games='"+users_games+"' WHERE user='"+message.author.id+"'")
-				games_players_unformatted = await db_wrapper(message.author, "SELECT players FROM games WHERE game='"+i+"'")
+						await db_wrapper(message.author, "UPDATE users SET games='"+users_games+"' WHERE user='"+message.author.id+"'", True)
+				games_players_unformatted = await db_wrapper(message.author, "SELECT players FROM games WHERE game='"+i+"'", True)
 				print("game's players: "+str(games_players_unformatted))
 				games_players = games_players_unformatted[0][0].split(',')
 				if games_players:
@@ -179,11 +202,11 @@ async def unqueue(message, command):
 						games_players.remove(message.author.id)
 						#print("new games_players: "+str(games_players))
 						if not games_players:
-							await db_wrapper(message.author, "UPDATE games SET players=NULL WHERE game='"+i+"'")
+							await db_wrapper(message.author, "UPDATE games SET players=NULL WHERE game='"+i+"'", True)
 						else:
 							new_list_of_players=",".join(games_players)
 							update_list_of_players="UPDATE games SET players='"+new_list_of_players+"' WHERE game='"+i+"'"
-							await db_wrapper(message.author, update_list_of_players)
+							await db_wrapper(message.author, update_list_of_players, True)
 				print(str(datetime.now())+": removed "+message.author.name+" from the queue for "+i)
 				await client.send_message(message.author, "Removed you from the queue for "+i)
 			else:
@@ -197,7 +220,7 @@ async def on_ready():
 	print(str(datetime.now()) + ": logged in as "+client.user.name)
 	return
 
-async def db_wrapper(member, execute):
+async def db_wrapper(member, execute, notify):
 	try:
 		db_connection = MySQLdb.connect(user=db_user, passwd = db_pwd, host=db_host, db=db_db)
 		cursor = db_connection.cursor()
@@ -208,9 +231,21 @@ async def db_wrapper(member, execute):
 		db_connection.close()
 	except:
 		print(str(datetime.now())+": failed to properly execute DB command: "+execute)
-		await client.send_message(member, "I had some trouble with a database query, please contact Chish#2578") 
+		if notify:
+			await client.send_message(member, "I had some trouble with a database query, please contact Chish#2578") 
 		return
 	return result
+
+async def describe(member_to_describe, member_requesting_this):
+	list_of_games = await db_wrapper(member_requesting_this, "SELECT games FROM users WHERE user='"+member_to_describe.id+"'", True)
+	print(str(datetime.now())+": Found that "+member_to_describe.name+" was queued up for "+str(list_of_games))
+	return list_of_games
+
+async def match_random_game(member):
+	#first, we make a list of all the games the member is queued for.
+	list_of_queued_games = await describe(member, member)
+	#TODO
+	return
 
 global db_connection
 #This is probably not the best way to do these things, but that's ok
