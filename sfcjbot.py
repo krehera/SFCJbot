@@ -23,7 +23,7 @@ async def on_message(message):
 				await match_random_game(message.author)
 				return
 			results = await db_wrapper(message.author, "SELECT user FROM users JOIN games ON FIND_IN_SET(user,players) WHERE game='"+hopefully_a_game+"' AND status='here'", True)
-			print("match results: "+str(results))
+			print(str(datetime.now())+": "+message.author.name+" requested a match in "+hopefully_a_game+" and found: "+str(results))
 			if results is None:
 				await client.send_message(message.channel, 'Sorry, I couldn\'t find a match for you.\nDed gaem lmao')
 				return
@@ -36,8 +36,18 @@ async def on_message(message):
 			if len(results_list)<1:
 				await client.send_message(message.channel, 'Sorry, I couldn\'t find a match for you.\nDed gaem lmao')
 				return
+
+			# remove users based on status (only users present should be pinged)
+			for member_id in results_list:
+				member_status = client.server.get_member(member_id).status
+				if member_status=discord.Status.idle or member_status=discord.Status.offline:
+					results_list.remove(client.server.get_member(member_id).mention)
+					print(str(datetime.now()+": removed "+client.server.get_member(member_id).name+" from the list because they were not available.")
+
 			challenge_message = 'Hey, ' + ", ".join(results_list) +' let\'s play some '+hopefully_a_game+' with '+message.author.mention
 			await client.send_message(message.channel, challenge_message)
+			#FIXME make this logging statement log user names of people matched
+			print(str(datetime.now())+": final match list for "+hopefully_a_game+": "+", ".join(results_list))
 			return
 
 		if "help" in command.lower():
@@ -236,15 +246,15 @@ async def db_wrapper(member, execute, notify):
 		return
 	return result
 
-async def describe(member_to_describe, member_requesting_this):
-	list_of_games = await db_wrapper(member_requesting_this, "SELECT games FROM users WHERE user='"+member_to_describe.id+"'", True)
-	print(str(datetime.now())+": Found that "+member_to_describe.name+" was queued up for "+str(list_of_games))
-	return list_of_games
-
 async def match_random_game(member):
 	#first, we make a list of all the games the member is queued for.
-	list_of_queued_games = await describe(member, member)
+	users_games = await db_wrapper(member, "SELECT games FROM users WHERE user ='"+member.id+"'", False)
+	users_games = users_games[0][0]
 	#TODO
+	if users_games:
+	
+	else:
+		
 	return
 
 global db_connection
