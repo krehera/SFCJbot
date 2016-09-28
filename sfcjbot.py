@@ -1,6 +1,7 @@
 import discord
 import asyncio
 import MySQLdb
+import random
 from datetime import datetime
 
 client = discord.Client()
@@ -17,10 +18,7 @@ async def on_message(message):
 		if "match" in command:
 			hopefully_a_game = command.split('match', 1)[-1].lstrip()
 			if hopefully_a_game == '':
-				await client.send_message(message.channel, 'If you need help, too bad.')
-				return
-				#TODO use this instead of the above when it's actually coded.
-				await match_random_game(message.author)
+				await match_random_game(message)
 				return
 			results = await db_wrapper(message.author, "SELECT user FROM users JOIN games ON FIND_IN_SET(user,players) WHERE game='"+hopefully_a_game+"' AND status='here'", True)
 			print(str(datetime.now())+": "+message.author.name+" requested a match in "+hopefully_a_game+" and found: "+str(results))
@@ -246,15 +244,33 @@ async def db_wrapper(member, execute, notify):
 		return
 	return result
 
-async def match_random_game(member):
+async def match_random_game(message):
 	#first, we make a list of all the games the member is queued for.
-	users_games = await db_wrapper(member, "SELECT games FROM users WHERE user ='"+member.id+"'", False)
+	users_games = await db_wrapper(message.author, "SELECT games FROM users WHERE user ='"+message.author.id+"'", False)
 	users_games = users_games[0][0]
-	#TODO
+	games_to_players = {}
 	if users_games:
-	
+		for game in users_games:
+			temp=await db_wrapper(message.author, "SELECT user FROM users JOIN games ON FIND_IN_SET(user,players) WHERE game='"+game+"' AND status='here'", True)
+			if temp:
+				players = []
+				for i in temp:
+					players.append(str(client.server.get_member(i[0]).mention))
+				if message.author.mention in players:
+					results_list.remove(message.author.mention)
+				for member_id in players:
+					member_status = client.server.get_member(member_id).status
+					if member_status=discord.Status.idle or member_status=discord.Status.offline:
+						players.remove(client.server.get_member(member_id).mention)
+				games_to_players[game]=players
+		# Now we have a map of {games the user is queued for, all other matched players}
+		# We choose a random game and match for that game.
+		chosen_game=random.choice(list(games_to_players.keys())
+		print(str(datetime.now())+": randomly matched "+message.author.name+" in "+chosen_game+" with "+str(games_to_players[chosen_game]))
+		challenge_message = 'Hey, ' + ", ".join(games_to_players[chosen_game]) +' let\'s play some '+chosen_game+' with '+message.author.mention
 	else:
-		
+		print(str(datetime.now())+": "+message.author.name+" tried to match a random game, but wasn't queued for anything.")
+		client.send_message(message.channel, "You'll have to queue up for some games before I can match you, "+message.author.mention)
 	return
 
 global db_connection
