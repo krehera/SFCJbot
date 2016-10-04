@@ -31,16 +31,17 @@ async def on_message(message):
 				results_list.append(tmp_string)
 			if message.author.mention in results_list:
 				results_list.remove(message.author.mention)
-			if len(results_list)<1:
-				await client.send_message(message.channel, 'Sorry, I couldn\'t find a match for you.\nDed gaem lmao')
-				return
 
 			# remove users based on status (only users present should be pinged)
 			for member_id in results_list:
 				member_status = client.server.get_member(member_id).status
-				if member_status=discord.Status.idle or member_status=discord.Status.offline:
+				if member_status!=discord.Status.online:
 					results_list.remove(client.server.get_member(member_id).mention)
 					print(str(datetime.now()+": removed "+client.server.get_member(member_id).name+" from the list because they were not available.")
+
+			if len(results_list)<1:
+				await client.send_message(message.channel, 'Sorry, I couldn\'t find a match for you.\nDed gaem lmao')
+				return
 
 			challenge_message = 'Hey, ' + ", ".join(results_list) +' let\'s play some '+hopefully_a_game+' with '+message.author.mention
 			await client.send_message(message.channel, challenge_message)
@@ -260,17 +261,21 @@ async def match_random_game(message):
 					results_list.remove(message.author.mention)
 				for member_id in players:
 					member_status = client.server.get_member(member_id).status
-					if member_status=discord.Status.idle or member_status=discord.Status.offline:
+					if member_status!=discord.Status.online:
 						players.remove(client.server.get_member(member_id).mention)
 				games_to_players[game]=players
 		# Now we have a map of {games the user is queued for, all other matched players}
-		# We choose a random game and match for that game.
+		# We choose a random game (that actually has players) and match for that game.
 		chosen_game=random.choice(list(games_to_players.keys())
+		while games_to_players[chosen_game].length = 0:
+			del games_to_players[chosen_game]
+			chosen_game=random.choice(list(games_to_players.keys())
 		print(str(datetime.now())+": randomly matched "+message.author.name+" in "+chosen_game+" with "+str(games_to_players[chosen_game]))
 		challenge_message = 'Hey, ' + ", ".join(games_to_players[chosen_game]) +' let\'s play some '+chosen_game+' with '+message.author.mention
+		await client.send_message(message.channel, challenge_message)
 	else:
 		print(str(datetime.now())+": "+message.author.name+" tried to match a random game, but wasn't queued for anything.")
-		client.send_message(message.channel, "You'll have to queue up for some games before I can match you, "+message.author.mention)
+		await client.send_message(message.channel, "You'll have to queue up for some games before I can match you, "+message.author.mention)
 	return
 
 global db_connection
