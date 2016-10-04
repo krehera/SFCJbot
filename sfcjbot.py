@@ -91,6 +91,7 @@ async def on_message(message):
 			command = command.split('describe', 1)[-1].lstrip().rstrip()
 			users_games = await db_wrapper(message.author, "SELECT games FROM users WHERE username ='"+command+"'", False)
 			users_games = users_games[0][0]
+			#users_games = users_games[0]
 			if users_games:
 				users_games = users_games.split(",")
 				await client.send_message(message.author, command+" is queued up for "+", ".join(users_games))
@@ -133,7 +134,7 @@ async def on_message(message):
 			return
 
 		if "about" in command.lower():
-			await client.send_message(message.author, "SFCJbot is running on a Raspberry Pi and is powered by the following technologies:\nRaspbian GNU/Linux 8 (jessie)\nPython 3.5\nDiscord.py\nMySQL and MySQLdb\ngit (of course)\nand my preferred text editor, vim")
+			await client.send_message(message.author, "SFCJbot is running on a Raspberry Pi and is powered by the following technologies:\nRaspbian GNU/Linux 8 (jessie)\nPython 3.5\nDiscord.py\nMySQL and MySQLdb")
 			return
 
 async def add_new_user_if_needed(message):
@@ -248,7 +249,7 @@ async def db_wrapper(member, execute, notify):
 async def match_random_game(message):
 	#first, we make a list of all the games the member is queued for.
 	users_games = await db_wrapper(message.author, "SELECT games FROM users WHERE user ='"+message.author.id+"'", False)
-	users_games = users_games[0][0]
+	users_games = users_games[0]
 	games_to_players = {}
 	if users_games:
 		for game in users_games:
