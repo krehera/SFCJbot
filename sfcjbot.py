@@ -270,7 +270,6 @@ async def match_random_game(message):
 				games_to_players[game]=players
 		# Now we have a map of {games the user is queued for, all other matched players}
 		# We choose a random game (that actually has players) and match for that game.
-		# FIXME this will throw an exception if there are no matches possible.
 		#print(str(datetime.now())+": games_to_players: "+str(games_to_players))
 		if len(games_to_players.keys()) == 0:
 			print(str(datetime.now())+": failed to find a random game for "+message.author.name+".")
