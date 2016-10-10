@@ -34,10 +34,13 @@ async def on_message(message):
 
 			# remove users based on status (only users present should be pinged)
 			for member_id in results_list:
-				member_status = client.server.get_member(member_id).status
+				member_status = ""
+				member = message.server.get_member(member_id)
+				if member:
+					member_status = member.status
 				if member_status!=discord.Status.online:
-					results_list.remove(client.server.get_member(member_id).mention)
-					print(str(datetime.now()+": removed "+client.server.get_member(member_id).name+" from the list because they were not available."))
+					results_list.remove(member_id)
+					print(str(datetime.now()+": removed "+member_id+" from the list because they were not available."))
 
 			if len(results_list)<1:
 				await client.send_message(message.channel, 'Sorry, I couldn\'t find a match for you.\nDed gaem lmao')
@@ -101,7 +104,7 @@ async def on_message(message):
 				print(str(datetime.now())+": told "+message.author.name+" that "+command+" is not queued up for any games.")
 			return
 
-		if "unqueue" in command:
+		if "unqueue" in command.lower():
 			command = command.split('unqueue', 1)[-1].lstrip()
 			await unqueue(message, command)
 			return
@@ -111,7 +114,7 @@ async def on_message(message):
 			await queue(message, command)
 			return
 
-		if "queue" in command:
+		if "queue" in command.lower():
 			command = command.split('queue', 1)[-1].lstrip()
 			await queue(message, command)
 			return
@@ -141,8 +144,8 @@ async def add_new_user_if_needed(message):
 	#This method also catches nickname changes (with the lower part there)
 	search_for_user = "SELECT user FROM users WHERE user="+message.author.id
 	result = await db_wrapper(message.author, search_for_user, True)
-	#print("add_new_user_if_needed found user: "+str(result[0][0]))
-	if str(result) == 'None':
+	#print(str(datetime.now())+" add_new_user_if_needed found user: "+str(result))
+	if str(result) == "()":
 		await db_wrapper(message.author, "INSERT INTO users (user) VALUES ("+message.author.id+")", True)
 		print(str(datetime.now())+": added user "+message.author.id)
 
@@ -249,7 +252,7 @@ async def db_wrapper(member, execute, notify):
 async def match_random_game(message):
 	#first, we make a list of all the games the member is queued for.
 	users_games = await db_wrapper(message.author, "SELECT games FROM users WHERE user ='"+message.author.id+"'", False)
-	users_games = users_games[0]
+	users_games = list(users_games[0][0])
 	games_to_players = {}
 	if users_games:
 		for game in users_games:
@@ -257,16 +260,17 @@ async def match_random_game(message):
 			if temp:
 				players = []
 				for i in temp:
-					players.append(str(client.server.get_member(i[0]).mention))
+					players.append(str(message.server.get_member(i[0]).mention))
 				if message.author.mention in players:
 					results_list.remove(message.author.mention)
 				for member_id in players:
-					member_status = client.server.get_member(member_id).status
+					member_status = message.server.get_member(member_id).status
 					if member_status!=discord.Status.online:
-						players.remove(client.server.get_member(member_id).mention)
+						players.remove(message.server.get_member(member_id).mention)
 				games_to_players[game]=players
 		# Now we have a map of {games the user is queued for, all other matched players}
 		# We choose a random game (that actually has players) and match for that game.
+		# FIXME this will throw an exception if there are no matches possible.
 		chosen_game=random.choice(list(games_to_players.keys()))
 		while (games_to_players[chosen_game].length == 0):
 			del games_to_players[chosen_game]
