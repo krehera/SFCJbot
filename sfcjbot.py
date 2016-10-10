@@ -40,7 +40,7 @@ async def on_message(message):
 					member_status = member.status
 				if member_status!=discord.Status.online:
 					results_list.remove(member_id)
-					print(str(datetime.now()+": removed "+member_id+" from the list because they were not available."))
+					print(str(datetime.now())+": removed "+member_id+" from the list because they were not available.")
 
 			if len(results_list)<1:
 				await client.send_message(message.channel, 'Sorry, I couldn\'t find a match for you.\nDed gaem lmao')
