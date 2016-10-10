@@ -252,28 +252,37 @@ async def db_wrapper(member, execute, notify):
 async def match_random_game(message):
 	#first, we make a list of all the games the member is queued for.
 	users_games = await db_wrapper(message.author, "SELECT games FROM users WHERE user ='"+message.author.id+"'", False)
-	users_games = list(users_games[0][0])
+	users_games = users_games[0][0].split(",")
+	#print("users_games: "+str(users_games))
 	games_to_players = {}
 	if users_games:
 		for game in users_games:
 			temp=await db_wrapper(message.author, "SELECT user FROM users JOIN games ON FIND_IN_SET(user,players) WHERE game='"+game+"' AND status='here'", True)
+			#print("temp: "+str(temp))
 			if temp:
 				players = []
-				for i in temp:
-					players.append(str(message.server.get_member(i[0]).mention))
+				for player in temp:
+					if message.server.get_member(player[0]):
+						if message.server.get_member(player[0]).status == discord.Status.online:
+							players.append(str(message.server.get_member(player[0]).mention))
 				if message.author.mention in players:
-					results_list.remove(message.author.mention)
-				for member_id in players:
-					member_status = message.server.get_member(member_id).status
-					if member_status!=discord.Status.online:
-						players.remove(message.server.get_member(member_id).mention)
+					players.remove(message.author.mention)
 				games_to_players[game]=players
 		# Now we have a map of {games the user is queued for, all other matched players}
 		# We choose a random game (that actually has players) and match for that game.
 		# FIXME this will throw an exception if there are no matches possible.
+		#print(str(datetime.now())+": games_to_players: "+str(games_to_players))
+		if len(games_to_players.keys()) == 0:
+			print(str(datetime.now())+": failed to find a random game for "+message.author.name+".")
+			await client.send_message(message.channel, "Sorry, I couldn't find a match for you.")
+			return
 		chosen_game=random.choice(list(games_to_players.keys()))
-		while (games_to_players[chosen_game].length == 0):
+		while (len(games_to_players[chosen_game]) == 0):
 			del games_to_players[chosen_game]
+			if len(games_to_players.keys()) == 0:
+				print(str(datetime.now())+": failed to find a random game for "+message.author.name+".")
+				await client.send_message(message.channel, "Sorry, I couldn't find a match for you.")
+				return
 			chosen_game=random.choice(list(games_to_players.keys()))
 		print(str(datetime.now())+": randomly matched "+message.author.name+" in "+chosen_game+" with "+str(games_to_players[chosen_game]))
 		challenge_message = 'Hey, ' + ", ".join(games_to_players[chosen_game]) +' let\'s play some '+chosen_game+' with '+message.author.mention
