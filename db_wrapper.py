@@ -22,9 +22,10 @@ class DB_Wrapper:
 			cursor.close()
 			db_connection.close()
 		except Exception as e:
-			print(str(datetime.now())+": failed to properly execute DB command: "+sql_command)
+			time = str(datetime.now())
+			print(time+": failed to properly execute DB command: "+sql_command)
 			print("The exception that occurred was: "+str(e))
 			if notify:
-				await client.send_message(member, "I had some trouble with a database query, please contact Chish#2578") 
+				await client.send_message(member, "I had some trouble with a database query. Please ask Chish#2578 to check the logs at time "+time)
 			return
 		return result

@@ -119,23 +119,19 @@ async def on_message(message):
 			return
 
 		if "unqueue" in command.lower():
-			command = command.split('unqueue', 1)[-1].lstrip()
-			await unqueue(message, command)
+			await unqueue(message, command.split('unqueue', 1)[-1].lstrip())
 			return
 
 		if command.startswith('Q '):
-			command = command[2:]
-			await queue(message, command)
+			await queue(message, command[2:])
 			return
 
 		if "queue" in command.lower():
-			command = command.split('queue', 1)[-1].lstrip()
-			await queue(message, command)
+			await queue(message, command.split('queue', 1)[-1].lstrip())
 			return
 
 		if command.startswith('unQ '):
-			command = command[4:]
-			await unqueue(message, command)
+			await unqueue(message, command[4:])
 			return
 
 		if "addgame" in command:
