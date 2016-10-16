@@ -28,8 +28,9 @@ async def on_message(message):
 				return
 			results_list=[]
 			for i in results:
-				tmp_string = str(message.server.get_member(i[0]).mention)
-				results_list.append(tmp_string)
+				if message.server.get_member(i[0]):
+					tmp_string = str(message.server.get_member(i[0]).mention)
+					results_list.append(tmp_string)
 			if message.author.mention in results_list:
 				results_list.remove(message.author.mention)
 
@@ -135,15 +136,7 @@ async def on_message(message):
 			return
 
 		if "addgame" in command:
-			command = command.split('addgame', 1)[-1].lstrip()
-			if message.author.permissions_in(message.channel).kick_members:
-				game_to_add = command
-				add_game="INSERT INTO games (game) VALUES ('"+game_to_add+"')"
-				await db_wrapper.execute(client, message.author, add_game, True)
-				print(str(datetime.now())+": added game "+game_to_add)
-				await client.send_message(message.author, "added game "+game_to_add+". If you messed up, ping the bot owner!")
-			else:
-				await client.send_message(message.author, "You don't have permission to add games.")
+			await addgame(command.split('addgame',1)[-1].lstrip(), message)
 			return
 
 		if "about" in command.lower():
@@ -185,6 +178,16 @@ async def queue(message, command):
 				await client.send_message(message.author, "You're already queued up for "+i+".")
 		else:
 			await client.send_message(message.author, "I\'ve never heard of a game called " + i)
+	return
+
+async def addgame(game_to_add, message):
+	if message.author.permissions_in(message.channel).kick_members:
+		add_game="INSERT INTO games (game) VALUES ('"+game_to_add+"')"
+		await db_wrapper.execute(client, message.author, add_game, True)
+		print(str(datetime.now())+": added game "+game_to_add)
+		await client.send_message(message.author, "added game "+game_to_add+". If you messed up, ping the bot owner!")
+	else:
+		await client.send_message(message.author, "You don't have permission to add games.")
 	return
 
 async def is_member_queued_for_game(member, game):
