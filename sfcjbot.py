@@ -289,10 +289,10 @@ async def match_random_game(message):
 	return
 
 #This is probably not the best way to do these things, but that's ok
-f = open('.token', 'r')
+f = open('auth/discord_token', 'r')
 token = f.readline().strip('\n')
 f.close()
-f = open('.mysql_auth', 'r')
+f = open('auth/mysql_auth', 'r')
 db_user = f.readline().strip('\n')
 db_pwd = f.readline().strip('\n')
 db_host = f.readline().strip('\n')
