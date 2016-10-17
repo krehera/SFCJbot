@@ -224,6 +224,7 @@ async def on_ready():
 async def match_random_game(message):
 	#first, we make a list of all the games the member is queued for.
 	users_games = await db_wrapper.execute(client, message.author, "SELECT game FROM pools WHERE player ='"+message.author.id+"'", False)
+	print("matching random game for: "+message.author.name)
 	print("users_games: "+str(users_games))
 	games_to_players = {}
 	if users_games != ():
@@ -231,7 +232,7 @@ async def match_random_game(message):
 		for game in users_games:
 			get_players_marked_here_not_requester="SELECT discord_id, username FROM users JOIN pools WHERE discord_id=player AND game='"+game+"' AND status='here' AND discord_id<>'"+message.author.id+"'" 
 			temp = await db_wrapper.execute(client, message.author, get_players_marked_here_not_requester, True)
-			print("temp: "+str(temp))
+			print("match_random_game match result: "+str(temp))
 			if temp:
 				players = []
 				for player in temp:
