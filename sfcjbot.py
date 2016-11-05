@@ -9,8 +9,8 @@ client = discord.Client()
 
 @client.event
 async def on_message(message):
-	#don't reply to myself
-	if message.author == client.user:
+	#don't reply to bots
+	if message.author.bot:
 		return
 
 	if any(x.id == client.user.id for x in message.mentions) or message.content.startswith('SFCJbot'):
@@ -21,38 +21,27 @@ async def on_message(message):
 			if hopefully_a_game == '':
 				await match_random_game(message)
 				return
-			get_players_marked_here = "SELECT discord_id, username FROM users JOIN pools WHERE discord_id = player AND game = (SELECT DISTINCT game FROM games WHERE game = '"+hopefully_a_game+"' OR ALIAS = '"+hopefully_a_game+"') AND status='here'" 
+			get_players_marked_here = "SELECT discord_id, username FROM users JOIN pools WHERE discord_id = player AND game = (SELECT DISTINCT game FROM games WHERE game = '"+hopefully_a_game+"' OR ALIAS = '"+hopefully_a_game+"') AND status='here' AND discord_id <> '"+message.author.id+"'" 
 			results = await db_wrapper.execute(client, message.author, get_players_marked_here, True)
 			print(str(datetime.now())+": "+message.author.name+" requested a match in "+hopefully_a_game+" and found: "+str(results))
 			if results is None:
 				await client.send_message(message.channel, 'Sorry, I couldn\'t find a match for you.\nDed gaem lmao')
 				return
-			results_list=[]
+			mentions_list=[]
+			usernames_list=[]
 			for i in results:
 				if message.server.get_member(i[0]):
-					tmp_string = str(message.server.get_member(i[0]).mention)
-					results_list.append(tmp_string)
-			if message.author.mention in results_list:
-				results_list.remove(message.author.mention)
+					if message.server.get_member(i[0]).status == discord.Status.online:
+						mentions_list.append(message.server.get_member(i[0]).mention)
+						usernames_list.append(i[1])
 
-			# remove users based on status (only users present should be pinged)
-			for member_id in results_list:
-				member_status = ""
-				member = message.server.get_member(member_id)
-				if member:
-					member_status = member.status
-				if member_status!=discord.Status.online:
-					results_list.remove(member_id)
-					print(str(datetime.now())+": removed "+member_id+" from the list because they were not available.")
-
-			if len(results_list)<1:
+			if len(mentions_list)<1:
 				await client.send_message(message.channel, 'Sorry, I couldn\'t find a match for you.\nDed gaem lmao')
 				return
 
-			challenge_message = 'Hey, ' + ", ".join(results_list) +' let\'s play some '+hopefully_a_game+' with '+message.author.mention
+			challenge_message = 'Hey, ' + ", ".join(mentions_list) +' let\'s play some '+hopefully_a_game+' with '+message.author.mention
 			await client.send_message(message.channel, challenge_message)
-			#FIXME make this logging statement log user names of people matched
-			print(str(datetime.now())+": final match list for "+hopefully_a_game+": "+", ".join(results_list))
+			print(str(datetime.now())+": final match list for "+hopefully_a_game+": "+", ".join(usernames_list))
 			return
 
 		if "help" in command.lower():
