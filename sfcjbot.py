@@ -95,6 +95,10 @@ async def on_message(message):
 			await client.send_message(message.author, games_message)
 			return
 
+		if "aliases" in command.lower():
+			
+			return
+
 		if "describe" in command.lower():
 			command = command.split('describe', 1)[-1].lstrip().rstrip()
 			users_games = await db_wrapper.execute(client, message.author, "SELECT game FROM pools WHERE player='"+command+"'", False)
@@ -123,7 +127,7 @@ async def on_message(message):
 			return
 
 		if "addgame" in command:
-			await addgame(command.split('addgame',1)[-1].lstrip(), message)
+	#		await addgame(command.split('addgame',1)[-1].lstrip(), message)
 			return
 
 		if "about" in command.lower():
