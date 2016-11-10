@@ -95,8 +95,8 @@ async def on_message(message):
 			await client.send_message(message.author, games_message)
 			return
 
-		if "aliases" in command.lower():
-			
+		if "alias" in command.lower():
+			await tell_aliases(message);
 			return
 
 		if "describe" in command.lower():
@@ -256,6 +256,37 @@ async def match_random_game(message):
 	else:
 		print(str(datetime.now())+": "+message.author.name+" tried to match a random game, but wasn't queued for anything.")
 		await client.send_message(message.channel, "You'll have to queue up for some games before I can match you, "+message.author.mention)
+	return
+
+async def tell_aliases(message):
+	# aquire map of (full game name) to (list of all aliases for that game)
+	sql_games_and_aliases = await db_wrapper.execute(client, message.author, "SELECT game, alias FROM games ORDER BY game", True)
+	#print(str(datetime.now())+ ": games and aliases: "+str(sql_games_and_aliases))
+	game_alias_map = {}
+	for game_alias_pair in sql_games_and_aliases:
+		if game_alias_pair[0] in game_alias_map:
+			game_alias_map[game_alias_pair[0]].append(game_alias_pair[1])
+		else:
+			game_alias_map[game_alias_pair[0]] = [game_alias_pair[1]]
+
+	print(str(game_alias_map))
+
+	# make it human-readable and give it to them
+	readable_aliases = ""
+	for game in sorted(game_alias_map):
+		#print("game: "+game)
+		readable_aliases += game+": "
+		if not game_alias_map[game]:
+			readable_aliases+= "No aliases so far.\n"
+			continue
+		for alias in game_alias_map[game]:
+			#print("alias: "+alias)
+			readable_aliases += alias+", "
+		readable_aliases = readable_aliases[:-2] # there are no aliases left, so remove that last comma + space
+		readable_aliases += "\n"
+
+	print(str(datetime.now())+ ": gave game/alias map to "+str(message.author.name))
+	await client.send_message(message.author, "Here are all the aliases available for games I have available: \n" + readable_aliases)
 	return
 
 #This is probably not the best way to do these things, but that's ok
