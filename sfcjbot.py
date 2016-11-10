@@ -290,10 +290,10 @@ async def tell_aliases(message):
 	return
 
 #This is probably not the best way to do these things, but that's ok
-f = open('auth/test_discord_token', 'r')
+f = open('auth/discord_token', 'r')
 token = f.readline().strip('\n')
 f.close()
-f = open('auth/test_mysql_auth', 'r')
+f = open('auth/mysql_auth', 'r')
 db_user = f.readline().strip('\n')
 db_pwd = f.readline().strip('\n')
 db_host = f.readline().strip('\n')
