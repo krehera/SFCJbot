@@ -92,7 +92,7 @@ async def on_message(message):
 				games_list.append(i[0])
 			games_message = 'I offer the following games: '+ ", ".join(games_list) + "."
 			await client.send_message(message.author, games_message)
-			print(str(datetime.now())+": found games for"+message.author.name)
+			print(str(datetime.now())+": found games for "+message.author.name)
 			return
 
 		if "alias" in command.lower():
@@ -187,11 +187,13 @@ async def addgame(game_to_add, message):
 	return
 
 async def is_member_queued_for_game(member, game):
-	print("is_member_queued_for_game called with member: "+member.name+" and game: "+str(game))
+	print("is_member_queued_for_game called with member: "+member.name+" and game: "+game)
 	query = "SELECT UID FROM pools WHERE game='"+game.replace("'","''")+"' AND player='"+member.id+"'"
 	dbresult = await db_wrapper.execute(client, member, query, True)
 	if str(dbresult) != "()":
+		print(str(datetime.now())+": "+member.name+" was found to be queued for "+game)
 		return True
+	print(str(datetime.now())+": "+member.name+" was found to NOT be queued for "+game)	
 	return False
 
 async def unqueue(message, command):
@@ -200,7 +202,7 @@ async def unqueue(message, command):
 	for hopefully_game in hopefully_list_of_games:
 		game = await db_wrapper.execute(client, message.author, "SELECT game FROM games WHERE (game='"+hopefully_game.replace("'","''")+"' OR alias='"+hopefully_game.replace("'","''")+"')", True)
 		if str(game) != "()":
-			already_queued = await is_member_queued_for_game(message.author, game)
+			already_queued = await is_member_queued_for_game(message.author, game[0][0])
 			if not already_queued:
 				await db_wrapper.execute(client, message.author, "DELETE FROM pools WHERE game='"+game.replace("'","''")+"' AND player='"+message.author.id+"'", True)
 				print(str(datetime.now())+": removed "+message.author.name+" from the queue for "+game)
