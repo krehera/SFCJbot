@@ -4,7 +4,9 @@ commands:
 
 **help** - links to the GitHub page so the user can see the README
 
-**games** - lists the games SFCJbot offers
+**games** - lists the games SFCJbot offers and their shorthand aliases
+
+**alias** - lists the games SFCJbot offers and their shorthand aliases
 
 **queue [game]** - adds you to the queue for [game]
 
@@ -17,8 +19,6 @@ commands:
 **match [game]** - pings everyone queued up for [game] that's here. Or use match without mentioning a game to match a random game you're queued for!
 
 **describe [name]** - tells you what games [user] is queued up for. Don't mention them, just type their name.
-
-**alias** - lists all the games and their shorthand aliases
 
 mod-only commands:
 

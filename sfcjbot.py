@@ -85,17 +85,7 @@ async def on_message(message):
 			await client.send_message(message.author, "Your region has been set to "+hopefully_a_region+".")
 			return
 
-		if "games" in command.lower():
-			games = await db_wrapper.execute(client, message.author, "SELECT DISTINCT game FROM games", True)
-			games_list = []
-			for i in games:
-				games_list.append(i[0])
-			games_message = 'I offer the following games: '+ ", ".join(games_list) + "."
-			await client.send_message(message.author, games_message)
-			print(str(datetime.now())+": found games for "+message.author.name)
-			return
-
-		if "alias" in command.lower():
+		if "alias" in command.lower() or "games" in command.lower():
 			await tell_aliases(message);
 			return
 
