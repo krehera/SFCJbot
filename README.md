@@ -18,6 +18,7 @@ commands:
 
 **describe [name]** - tells you what games [user] is queued up for. Don't mention them, just type their name.
 
+**alias** - lists all the games and their shorthand aliases
 
 mod-only commands:
 

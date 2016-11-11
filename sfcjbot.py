@@ -160,9 +160,7 @@ async def queue(message, command):
 	await add_new_user_if_needed(message)
 	hopefully_list_of_games = command.split(" ")
 	for hopefully_game in hopefully_list_of_games:
-		print("Searching for "+hopefully_game)
 		game = await db_wrapper.execute(client, message.author, "SELECT game FROM games WHERE game='"+hopefully_game.replace("'","''")+"' OR alias='"+hopefully_game.replace("'","''")+"'", True)
-		print("found game "+ str(game))
 		if str(game) != "()":
 			game = game[0][0]
 			already_queued = await is_member_queued_for_game(message.author, game)
@@ -175,6 +173,7 @@ async def queue(message, command):
 				await client.send_message(message.author, "You're already queued up for "+hopefully_game+".")
 		else:
 			await client.send_message(message.author, "I\'ve never heard of a game called " + hopefully_game)
+			print(str(datetime.now())+": "+message.author.name+" searched for "+hopefully_game+" but found nothing.")
 	return
 
 async def addgame(game_to_add, message):
