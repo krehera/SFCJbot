@@ -21,7 +21,7 @@ async def on_message(message):
 			if hopefully_a_game == '':
 				await match_random_game(message)
 				return
-			get_players_marked_here = "SELECT discord_id, username FROM users JOIN pools WHERE discord_id = player AND game = (SELECT DISTINCT game FROM games WHERE game = '"+hopefully_a_game+"' OR ALIAS = '"+hopefully_a_game+"') AND status='here' AND discord_id <> '"+message.author.id+"'" 
+			get_players_marked_here = "SELECT discord_id, username FROM users JOIN pools WHERE discord_id = player AND game = (SELECT DISTINCT game FROM games WHERE game = '"+hopefully_a_game.replace("'","''")+"' OR ALIAS = '"+hopefully_a_game.replace("'","''")+"') AND status='here' AND discord_id <> '"+message.author.id+"'" 
 			results = await db_wrapper.execute(client, message.author, get_players_marked_here, True)
 			print(str(datetime.now())+": "+message.author.name+" requested a match in "+hopefully_a_game+" and found: "+str(results))
 			if results is None:
@@ -87,12 +87,12 @@ async def on_message(message):
 
 		if "games" in command.lower():
 			games = await db_wrapper.execute(client, message.author, "SELECT DISTINCT game FROM games", True)
-			print(str(datetime.now())+": found games: "+str(games))
 			games_list = []
 			for i in games:
 				games_list.append(i[0])
 			games_message = 'I offer the following games: '+ ", ".join(games_list) + "."
 			await client.send_message(message.author, games_message)
+			print(str(datetime.now())+": found games for"+message.author.name)
 			return
 
 		if "alias" in command.lower():
@@ -101,10 +101,13 @@ async def on_message(message):
 
 		if "describe" in command.lower():
 			command = command.split('describe', 1)[-1].lstrip().rstrip()
-			users_games = await db_wrapper.execute(client, message.author, "SELECT game FROM pools WHERE player='"+command+"'", False)
+			users_games = await db_wrapper.execute(client, message.author, "SELECT distinct game FROM pools INNER JOIN users ON pools.player = users.discord_id WHERE username='"+command+"'", False)
 			if users_games:
-				await client.send_message(message.author, command+" is queued up for "+", ".join(users_games))
-				print(str(datetime.now())+": told "+message.author.name+" that "+command+" is queued up for "+", ".join(users_games))
+				list_of_users_games=[]
+				for game_tuple in users_games:
+					list_of_users_games.append(game_tuple[0])
+				await client.send_message(message.author, command+" is queued up for "+", ".join(list_of_users_games))
+				print(str(datetime.now())+": told "+message.author.name+" that "+command+" is queued up for "+", ".join(users_games[0]))
 			else:
 				await client.send_message(message.author, command+" isn't queued up for any games.")
 				print(str(datetime.now())+": told "+message.author.name+" that "+command+" is not queued up for any games.")
@@ -158,13 +161,13 @@ async def queue(message, command):
 	hopefully_list_of_games = command.split(" ")
 	for hopefully_game in hopefully_list_of_games:
 		print("Searching for "+hopefully_game)
-		game = await db_wrapper.execute(client, message.author, "SELECT game FROM games WHERE game='"+hopefully_game+"' OR alias='"+hopefully_game+"'", True)
+		game = await db_wrapper.execute(client, message.author, "SELECT game FROM games WHERE game='"+hopefully_game.replace("'","''")+"' OR alias='"+hopefully_game.replace("'","''")+"'", True)
 		print("found game "+ str(game))
-		if game is not None:
+		if str(game) != "()":
 			game = game[0][0]
 			already_queued = await is_member_queued_for_game(message.author, game)
 			if not already_queued:
-				await db_wrapper.execute(client, message.author, "INSERT INTO pools (game, player) VALUES ('"+game+"', '"+message.author.id+"')", True)
+				await db_wrapper.execute(client, message.author, "INSERT INTO pools (game, player) VALUES ('"+game.replace("'","''")+"', '"+message.author.id+"')", True)
 				print(str(datetime.now())+": added "+message.author.name+" to the queue for "+game)
 				await client.send_message(message.author, "Added you to the queue for " + hopefully_game)
 			else:
@@ -186,8 +189,8 @@ async def addgame(game_to_add, message):
 
 async def is_member_queued_for_game(member, game):
 	print("is_member_queued_for_game called with member: "+member.name+" and game: "+str(game))
-	dbresult = await db_wrapper.execute(client, member, "SELECT UID FROM pools WHERE game='"+game+"' AND player='"+member.id+"'", True)
-	print("result: "+str(dbresult))
+	query = "SELECT UID FROM pools WHERE game='"+game.replace("'","''")+"' AND player='"+member.id+"'"
+	dbresult = await db_wrapper.execute(client, member, query, True)
 	if str(dbresult) != "()":
 		return True
 	return False
@@ -196,11 +199,11 @@ async def unqueue(message, command):
 	await add_new_user_if_needed(message)
 	hopefully_list_of_games = command.split(" ")
 	for hopefully_game in hopefully_list_of_games:
-		game = await db_wrapper.execute(client, message.author, "SELECT game FROM games WHERE (game='"+hopefully_game+"' OR alias='"+hopefully_game+"')", True)
+		game = await db_wrapper.execute(client, message.author, "SELECT game FROM games WHERE (game='"+hopefully_game.replace("'","''")+"' OR alias='"+hopefully_game.replace("'","''")+"')", True)
 		if str(game) != "()":
 			already_queued = await is_member_queued_for_game(message.author, game)
 			if not already_queued:
-				await db_wrapper.execute(client, message.author, "DELETE FROM pools WHERE game='"+game+"' AND player='"+message.author.id+"'", True)
+				await db_wrapper.execute(client, message.author, "DELETE FROM pools WHERE game='"+game.replace("'","''")+"' AND player='"+message.author.id+"'", True)
 				print(str(datetime.now())+": removed "+message.author.name+" from the queue for "+game)
 				await client.send_message(message.author, "Removed you from the queue for "+hopefully_game)
 			else:
@@ -223,7 +226,7 @@ async def match_random_game(message):
 	if users_games != ():
 		users_games = users_games[0]
 		for game in users_games:
-			get_players_marked_here_not_requester="SELECT discord_id, username FROM users JOIN pools WHERE discord_id=player AND game='"+game+"' AND status='here' AND discord_id<>'"+message.author.id+"'" 
+			get_players_marked_here_not_requester="SELECT discord_id, username FROM users JOIN pools WHERE discord_id=player AND game='"+game.replace("'","''")+"' AND status='here' AND discord_id<>'"+message.author.id+"'" 
 			temp = await db_wrapper.execute(client, message.author, get_players_marked_here_not_requester, True)
 			print("match_random_game match result: "+str(temp))
 			if temp:
@@ -269,13 +272,11 @@ async def tell_aliases(message):
 		else:
 			game_alias_map[game_alias_pair[0]] = [game_alias_pair[1]]
 
-	print(str(game_alias_map))
-
 	# make it human-readable and give it to them
 	readable_aliases = ""
 	for game in sorted(game_alias_map):
 		#print("game: "+game)
-		readable_aliases += game+": "
+		readable_aliases += "**"+game+"**: "
 		if not game_alias_map[game]:
 			readable_aliases+= "No aliases so far.\n"
 			continue
