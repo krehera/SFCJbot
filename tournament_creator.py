@@ -1,5 +1,6 @@
 from sys import argv
 import challonge
+import string
 import twitter
 
 # This script needs three files and a datetime as arguments to run.
@@ -39,9 +40,10 @@ games = games[1:]
 games.append(game_to_make_a_tournament_for)
 
 # create a tournament for the game
+tourny_url = random.choice(string.ascii_lowercase) for _ in range(0, 15))
 tournament = {'tournament_type':"single elimination", 'game_name':game_to_make_a_tournament_for, 'start_at':datetime_tourny_start}
-response = challonge.tournaments.create("test", "sfcjtest", **tournament) 
-print("response: " + str(response))
+response = challonge.tournaments.create(game_to_make_a_tournament_for, tourny_url, **tournament) 
+#print("response: " + str(response))
 
 # write the file
 file_of_games = open(games_filename, "w")
