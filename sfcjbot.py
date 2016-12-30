@@ -2,9 +2,11 @@ import discord
 import asyncio
 import MySQLdb
 import random
+from sys import argv
 from db_wrapper import DB_Wrapper
 from datetime import datetime
 
+this_program, discord_credentials, mysql_credentials = argv
 client = discord.Client()
 
 @client.event
@@ -281,11 +283,11 @@ async def tell_aliases(message):
 	await client.send_message(message.author, "Here are all the aliases available for games I have available: \n" + readable_aliases)
 	return
 
-#This is probably not the best way to do these things, but that's ok
-f = open('auth/discord_token', 'r')
+# This is probably not the best way to do these things, but that's ok
+f = open(discord_credentials, 'r')
 token = f.readline().strip('\n')
 f.close()
-f = open('auth/mysql_auth', 'r')
+f = open(mysql_credentials, 'r')
 db_user = f.readline().strip('\n')
 db_pwd = f.readline().strip('\n')
 db_host = f.readline().strip('\n')

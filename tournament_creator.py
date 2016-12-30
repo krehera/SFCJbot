@@ -2,6 +2,7 @@ from sys import argv
 import challonge
 import string
 import twitter
+import random
 
 # This script needs three files and a datetime as arguments to run.
 # The first file must be a newline-delimited list of the games which you wish to run tournaments for.
@@ -9,6 +10,7 @@ import twitter
 # The second file should be two lines, containing your Challonge username and API key.
 # The third file should be four lines, countaining your Twitter authentication information.
 # datetime_tourny_start format: "2015-01-19T16:57:17-05:00"
+# you can get this agument with gnu's date via a command similar to 'date -d "next Friday 8 pm" +%FT%H:%M:%S%:z'
 this_program, games_filename, challonge_auth_filename, twitter_auth_filename, datetime_tourny_start = argv
 
 # read the games file
@@ -40,8 +42,8 @@ games = games[1:]
 games.append(game_to_make_a_tournament_for)
 
 # create a tournament for the game
-tourny_url = random.choice(string.ascii_lowercase) for _ in range(0, 15))
-tournament = {'tournament_type':"single elimination", 'game_name':game_to_make_a_tournament_for, 'start_at':datetime_tourny_start}
+tourny_url = "".join(random.choice(string.ascii_lowercase) for _ in xrange(0, 15))
+tournament = {'tournament_type':"double elimination", 'game_name':game_to_make_a_tournament_for, 'open_signup':True, 'start_at':datetime_tourny_start}
 response = challonge.tournaments.create(game_to_make_a_tournament_for, tourny_url, **tournament) 
 #print("response: " + str(response))
 
