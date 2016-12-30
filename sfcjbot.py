@@ -72,6 +72,10 @@ async def on_message(message):
 			print(str(datetime.now())+": set "+message.author.name+" to afk.")
 			await client.send_message(message.author, "Your status was changed to 'afk.'")
 			return
+
+		if "set_fightcade" in command.lower():
+			await set_fightcade(message)
+			return
 		
 		if "region" in command.lower():
 			hopefully_a_region = command.split('region', 1)[-1].lstrip()
@@ -88,7 +92,7 @@ async def on_message(message):
 			return
 
 		if "alias" in command.lower() or "games" in command.lower():
-			await tell_aliases(message);
+			await tell_aliases(message)
 			return
 
 		if "describe" in command.lower():
@@ -205,12 +209,22 @@ async def unqueue(message, command):
 			await client.send_message(message.author, "I\'ve never heard of a game called " + hopefully_game)
 	return
 
+async def set_fightcade(message):
+	hopefully_a_fightcade_username = message.content.split('set_fightcade', 1)[-1].lstrip()
+	await add_new_user_if_needed(message)
+	query = "UPDATE users SET fightcade = '" + hopefully_a_fightcade_username + "' WHERE discord_id = '" + message.author.id + "'"
+	await db_wrapper.execute(client, message.author, query, True)
+	print(str(datetime.now())+": Set " + message.author.name + "'s Fightcade username to " + hopefully_a_fightcade_username)
+	await client.send_message(message.author, "Set your fightcade username to " + hopefully_a_fightcade_username +".")
+	return
+
 @client.event
 async def on_ready():
 	print(str(datetime.now()) + ": logged in as "+client.user.name)
 	return
 
 async def match_random_game(message):
+	await add_new_user_if_necessary(message)
 	#first, we make a list of all the games the member is queued for.
 	users_games = await db_wrapper.execute(client, message.author, "SELECT game FROM pools WHERE player ='"+message.author.id+"'", False)
 	print("matching random game for: "+message.author.name)
