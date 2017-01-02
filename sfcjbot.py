@@ -96,6 +96,7 @@ async def on_message(message):
 			return
 
 		if "describe" in command.lower():
+			# TODO also include Fightcade username
 			command = command.split('describe', 1)[-1].lstrip().rstrip()
 			users_games = await db_wrapper.execute(client, message.author, "SELECT distinct game FROM pools INNER JOIN users ON pools.player = users.discord_id WHERE username='"+command+"'", False)
 			if users_games:
