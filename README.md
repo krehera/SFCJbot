@@ -20,6 +20,8 @@ commands:
 
 **describe [name]** - tells you what games [user] is queued up for. Don't mention them, just type their name.
 
+**set challonge [name]** - tell the bot your Challonge username so it can ping you for pairings when a tournament starts!
+
 mod-only commands:
 
-**addgame [game]** - lets the bot recognize [game] as a valid game.
+**addgame [game]** - lets the bot recognize [game] as a valid game. (this command is not working for now.)

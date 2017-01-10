@@ -100,7 +100,7 @@ async def on_message(message):
 			return
 
 		if "describe" in command.lower():
-			# TODO also include Fightcade username
+			# TODO also include Fightcade and Challonge usernames
 			command = command.split('describe', 1)[-1].lstrip().rstrip()
 			users_games = await db_wrapper.execute(client, message.author, "SELECT distinct game FROM pools INNER JOIN users ON pools.player = users.discord_id WHERE username='"+command+"'", False)
 			if users_games:
@@ -136,6 +136,10 @@ async def on_message(message):
 
 		if "about" in command.lower():
 			await client.send_message(message.author, "SFCJbot is running on a Raspberry Pi and is powered by the following technologies:\nRaspbian GNU/Linux 8 (jessie)\nPython 3.5\nDiscord.py\nMySQL and MySQLdb\npychallonge")
+			return
+
+		if "pairing" in command.lower():
+			await pairing(message)
 			return
 
 async def add_new_user_if_needed(message):
@@ -212,6 +216,13 @@ async def unqueue(message, command):
 				await client.send_message(message.author, "You aren't in the queue for "+hopefully_game)
 		else:
 			await client.send_message(message.author, "I\'ve never heard of a game called " + hopefully_game)
+	return
+
+async pairing(message):
+	if message.author.permissions_in(message.channel).kick_members:
+		# Mod version of command. Ping everybody in the tournament with their pairing.
+	else:
+		# Regular version of command. Only ping the person who asked.
 	return
 
 async def set_secondary(message, thing_to_set):
