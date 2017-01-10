@@ -73,8 +73,12 @@ async def on_message(message):
 			await client.send_message(message.author, "Your status was changed to 'afk.'")
 			return
 
-		if "set_fightcade" in command.lower():
-			await set_fightcade(message)
+		if "set_fightcade" in command.lower() or "set fightcade" in command.lower():
+			await set_secondary(message, "fightcade")
+			return
+
+		if "set_challonge" in command.lower() or "set challonge" in command.lower():
+			await set_secondary(message, "challonge")
 			return
 		
 		if "region" in command.lower():
@@ -210,13 +214,15 @@ async def unqueue(message, command):
 			await client.send_message(message.author, "I\'ve never heard of a game called " + hopefully_game)
 	return
 
-async def set_fightcade(message):
-	hopefully_a_fightcade_username = message.content.split('set_fightcade', 1)[-1].lstrip()
+async def set_secondary(message, thing_to_set):
+	# Be careful with the second argument you give this method. No input sanitization is performed.
+	# Preferably, call it with a string. Do NOT take the argument directly from user input!
+	hopefully_a_valid_input= message.content.split(thing_to_set, 1)[-1].lstrip()
 	await add_new_user_if_needed(message)
-	query = "UPDATE users SET fightcade = '" + hopefully_a_fightcade_username + "' WHERE discord_id = '" + message.author.id + "'"
+	query = "UPDATE users SET " + thing_to_set + " = '" + hopefully_a_valid_input + "' WHERE discord_id = '" + message.author.id + "'"
 	await db_wrapper.execute(client, message.author, query, True)
-	print(str(datetime.now())+": Set " + message.author.name + "'s Fightcade username to " + hopefully_a_fightcade_username)
-	await client.send_message(message.author, "Set your fightcade username to " + hopefully_a_fightcade_username +".")
+	print(str(datetime.now())+": Set " + message.author.name + "'s " + thing_to_set + " to " + hopefully_a_valid_input)
+	await client.send_message(message.author, "Set your " + thing_to_set + " to " + hopefully_a_valid_input+".")
 	return
 
 @client.event
