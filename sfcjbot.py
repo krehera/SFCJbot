@@ -80,7 +80,7 @@ async def on_message(message):
 			return
 
 		if "set_challonge" in command.lower() or "set challonge" in command.lower():
-			await set_secondary(message, "challonge_name")
+			await set_secondary(message, "challonge")
 			return
 		
 		if "region" in command.lower():
@@ -258,7 +258,7 @@ async def getPlayerInfoWithChallonge(message, tournament, challonge_id):
 		participants = challonge.participants.index(tournament["id"])
 		for participant in participants:
 			if participant["id"] == challonge_id:
-				newIDquery = "UPDATE users SET challonge_id = '" + str(challonge_id) + "' WHERE challonge_name = '" + str(participant["username"]) + "'"
+				newIDquery = "UPDATE users SET challonge_id = '" + str(challonge_id) + "' WHERE challonge = '" + str(participant["username"]) + "'"
 				await db_wrapper.execute(client, message.author, newIDquery, True)
 				discordFightcadeTuple = await db_wrapper.execute(client, message.author, getDiscordFightcadeQuery, True)
 				fallbackChallongeUsername = str(participant["username"])
