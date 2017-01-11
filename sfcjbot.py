@@ -1,4 +1,5 @@
 import discord
+import challonge
 import asyncio
 import MySQLdb
 import random
@@ -6,11 +7,12 @@ from sys import argv
 from db_wrapper import DB_Wrapper
 from datetime import datetime
 
-this_program, discord_credentials, mysql_credentials = argv
+this_program, discord_credentials, mysql_credentials, challonge_credentials = argv
 client = discord.Client()
 
 @client.event
 async def on_message(message):
+	# TODO this needs to be refactored.
 	#don't reply to bots
 	if message.author.bot:
 		return
@@ -219,6 +221,7 @@ async def unqueue(message, command):
 	return
 
 async pairing(message):
+	# TODO this is a stub
 	if message.author.permissions_in(message.channel).kick_members:
 		# Mod version of command. Ping everybody in the tournament with their pairing.
 	else:
@@ -228,6 +231,7 @@ async pairing(message):
 async def set_secondary(message, thing_to_set):
 	# Be careful with the second argument you give this method. No input sanitization is performed.
 	# Preferably, call it with a string. Do NOT take the argument directly from user input!
+	# FIXME check that the second argument is actually a valid column.
 	hopefully_a_valid_input= message.content.split(thing_to_set, 1)[-1].lstrip()
 	await add_new_user_if_needed(message)
 	query = "UPDATE users SET " + thing_to_set + " = '" + hopefully_a_valid_input + "' WHERE discord_id = '" + message.author.id + "'"
@@ -319,6 +323,11 @@ async def tell_aliases(message):
 f = open(discord_credentials, 'r')
 token = f.readline().strip('\n')
 f.close()
+f = open(challonge_credentials, 'r')
+challonge_username = f.readline().rstrip()
+challonge_key = f.readline.rstrip()
+f.close()
+challonge.set_credentials(challonge_username, challonge_key)
 f = open(mysql_credentials, 'r')
 db_user = f.readline().strip('\n')
 db_pwd = f.readline().strip('\n')
