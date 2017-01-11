@@ -80,7 +80,7 @@ async def on_message(message):
 			return
 
 		if "set_challonge" in command.lower() or "set challonge" in command.lower():
-			await set_secondary(message, "challonge")
+			await set_secondary(message, "challonge_name")
 			return
 		
 		if "region" in command.lower():
@@ -226,7 +226,7 @@ async def pairing(message):
 	tournaments_unfiltered = challonge.tournaments.index(state="underway")
 	# the challonge library I'm using currently doesn't perform that indexing correctly in python 3.5.
 	# it doesn't actually filter out tournaments with any other state. It just returns all of them.
-	# it has a failing unit test for this but I guess the maintainer doesn't care.
+	# it does have a unit test for this, but it fails on python 3.5.
 	# so, for now, I filter the tournaments manually.
 	for i in tournaments_unfiltered:
 		if i["state"] == "underway":
@@ -238,20 +238,35 @@ async def pairing(message):
 			match_params = {'state':"open"}
 			matches = challonge.matches.index(tournament["id"], **match_params)
 			for match in matches:
-				player1 = await getPlayerInfoWithChallonge(match["player1-id"])
-				player2 = await getPlayerInfoWithChallonge(match["player2-id"])
-				# TODO add to discord_output and send message
+				player1 = await getPlayerInfoWithChallonge(message, tournament, match["player1-id"])
+				player2 = await getPlayerInfoWithChallonge(message, tournament, match["player2-id"])
+				discord_output += player1 + " vs. " + player2 + "\n"
 	else:
 		# TODO Regular version of command. Only ping the person who asked.
-		discord_output = "Sorry, I haven't learned how to do that yet."
+		discord_output = "Sorry, only mods are allowed to do that for now."
 	print(str(datetime.now())+": gave pairings to " + message.author.name)
 	await client.send_message(message.channel, discord_output)
 	return
 
-async def getPlayerInfoWithChallonge(challonge_id):
+async def getPlayerInfoWithChallonge(message, tournament, challonge_id):
 	# We have a Challonge ID and we need a Discord user and a Fightcade username.
-	# TODO
-	return
+	# if we can't get that, we'll just print the Challonge username.
+	getDiscordFightcadeQuery = "SELECT discord_id, fightcade FROM users WHERE challonge_id = '" + str(challonge_id) + "'"
+	discordFightcadeTuple = await db_wrapper.execute(client, message.author, getDiscordFightcadeQuery, True)
+	fallbackChallongeUsername = "Mystery User"
+	if str(discordFightcadeTuple) == "()":
+		participants = challonge.participants.index(tournament["id"])
+		for participant in participants:
+			if participant["id"] == challonge_id:
+				newIDquery = "UPDATE users SET challonge_id = '" + str(challonge_id) + "' WHERE challonge_name = '" + str(participant["username"]) + "'"
+				await db_wrapper.execute(client, message.author, newIDquery, True)
+				discordFightcadeTuple = await db_wrapper.execute(client, message.author, getDiscordFightcadeQuery, True)
+				fallbackChallongeUsername = str(participant["username"])
+				break
+		if str(discordFightcadeTuple) == "()":
+			# at this point, we know we do not know which Discord user the Challonge ID we have corresponds to, so we just return their Challonge username.
+			return fallbackChallongeUsername
+	return message.server.get_member(discordFightcadeTuple[0][0]).mention + " (" + discordFightcadeTuple[0][1] + ")"
 
 async def set_secondary(message, thing_to_set):
 	# Be careful with the second argument you give this method. No input sanitization is performed.
