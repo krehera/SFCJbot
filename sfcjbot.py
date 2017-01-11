@@ -220,12 +220,37 @@ async def unqueue(message, command):
 			await client.send_message(message.author, "I\'ve never heard of a game called " + hopefully_game)
 	return
 
-async pairing(message):
-	# TODO this is a stub
+async def pairing(message):
+	discord_output = ""
+	tournaments = []
+	tournaments_unfiltered = challonge.tournaments.index(state="underway")
+	# the challonge library I'm using currently doesn't perform that indexing correctly in python 3.5.
+	# it doesn't actually filter out tournaments with any other state. It just returns all of them.
+	# it has a failing unit test for this but I guess the maintainer doesn't care.
+	# so, for now, I filter the tournaments manually.
+	for i in tournaments_unfiltered:
+		if i["state"] == "underway":
+			tournaments.append(i)
 	if message.author.permissions_in(message.channel).kick_members:
 		# Mod version of command. Ping everybody in the tournament with their pairing.
+		for tournament in tournaments:
+			discord_output += "\nPairings for " + tournament["game-name"] + ": \n"
+			match_params = {'state':"open"}
+			matches = challonge.matches.index(tournament["id"], **match_params)
+			for match in matches:
+				player1 = await getPlayerInfoWithChallonge(match["player1-id"])
+				player2 = await getPlayerInfoWithChallonge(match["player2-id"])
+				# TODO add to discord_output and send message
 	else:
-		# Regular version of command. Only ping the person who asked.
+		# TODO Regular version of command. Only ping the person who asked.
+		discord_output = "Sorry, I haven't learned how to do that yet."
+	print(str(datetime.now())+": gave pairings to " + message.author.name)
+	await client.send_message(message.channel, discord_output)
+	return
+
+async def getPlayerInfoWithChallonge(challonge_id):
+	# We have a Challonge ID and we need a Discord user and a Fightcade username.
+	# TODO
 	return
 
 async def set_secondary(message, thing_to_set):
@@ -325,7 +350,7 @@ token = f.readline().strip('\n')
 f.close()
 f = open(challonge_credentials, 'r')
 challonge_username = f.readline().rstrip()
-challonge_key = f.readline.rstrip()
+challonge_key = f.readline().rstrip()
 f.close()
 challonge.set_credentials(challonge_username, challonge_key)
 f = open(mysql_credentials, 'r')
