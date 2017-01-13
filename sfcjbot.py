@@ -286,7 +286,7 @@ async def on_ready():
 	return
 
 async def match_random_game(message):
-	await add_new_user_if_necessary(message)
+	await add_new_user_if_needed(message)
 	#first, we make a list of all the games the member is queued for.
 	users_games = await db_wrapper.execute(client, message.author, "SELECT game FROM pools WHERE player ='"+message.author.id+"'", False)
 	print("matching random game for: "+message.author.name)
