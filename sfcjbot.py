@@ -210,9 +210,9 @@ async def unqueue(message, command):
 		game = await db_wrapper.execute(client, message.author, "SELECT game FROM games WHERE (game='"+hopefully_game.replace("'","''")+"' OR alias='"+hopefully_game.replace("'","''")+"')", True)
 		if str(game) != "()":
 			already_queued = await is_member_queued_for_game(message.author, game[0][0])
-			if not already_queued:
-				await db_wrapper.execute(client, message.author, "DELETE FROM pools WHERE game='"+game.replace("'","''")+"' AND player='"+message.author.id+"'", True)
-				print(str(datetime.now())+": removed "+message.author.name+" from the queue for "+game)
+			if already_queued:
+				await db_wrapper.execute(client, message.author, "DELETE FROM pools WHERE game='"+game[0][0].replace("'","''")+"' AND player='"+message.author.id+"'", True)
+				print(str(datetime.now())+": removed "+message.author.name+" from the queue for "+game[0][0])
 				await client.send_message(message.author, "Removed you from the queue for "+hopefully_game)
 			else:
 				await client.send_message(message.author, "You aren't in the queue for "+hopefully_game)
