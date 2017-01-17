@@ -64,6 +64,10 @@ async def on_message(message):
 			await set_secondary(message, "region")
 			return
 
+		if "set_cfn" in command.lower() or "set cfn" in command.lower() or "cfn" in command.lower():
+			await set_secondary(message, "cfn")
+			return
+
 		if "alias" in command.lower() or "games" in command.lower():
 			await tell_aliases(message)
 			return
@@ -101,7 +105,7 @@ async def on_message(message):
 			return
 
 async def addgame(game_to_add, message):
-	# FIXME see Github issue about this.
+	# FIXME see GitHub issue about this.
 	if message.author.permissions_in(message.channel).kick_members:
 		add_game="INSERT INTO games (game) VALUES ('"+game_to_add+"')"
 		await db_wrapper.execute(client, message.author, add_game, True)
@@ -142,25 +146,24 @@ async def describe(message):
 		user_description = discord_user + " is queued up for " + ", ".join(list_of_users_games) + "\n"
 	else:
 		user_description = discord_user + " isn't queued up for any games.\n"
-	user_description_query = "SELECT challonge, fightcade FROM users WHERE username='" + discord_user + "'"
+	user_description_query = "SELECT challonge, fightcade, cfn FROM users WHERE username='" + discord_user + "'"
 	user_description_result = await db_wrapper.execute(client, message.author, user_description_query, True)
 	if str(user_description_result) == "()":
 		await client.send_message(message.author, "I don't know anyone named " + discord_user + ".")
 		return
 	user_description_tuple = user_description_result[0]
-	if user_description_tuple[0] is not None:
+	if user_description_tuple[0]:
 		user_description += "Their Challonge username is " + user_description_tuple[0] + "."
-	else:
-		user_description += "I don't know their Challonge username."
 	if user_description_tuple[1]:
 		user_description += " Their Fightcade username is " + user_description_tuple[1] + "."
-	else:
-		user_description += " I don't know their Fightcade username."
+	if user_description_tuple[2]:
+		user_description += " Their CFN is " + user_description_tuple[2] + "."
 	await client.send_message(message.author, user_description)
 	print(str(datetime.now())+": gave " + discord_user + "'s description to " + message.author.name + ".")
 	return
 
-async def getPlayerInfoWithChallonge(message, tournament, challonge_id):
+
+async def getDiscordFightcadeUsingChallonge(message, tournament, challonge_id):
 	# We have a Challonge ID and we need a Discord user and a Fightcade username.
 	# if we can't get that, we'll just print the Challonge username.
 	getDiscordFightcadeQuery = "SELECT discord_id, fightcade FROM users WHERE challonge_id = '" + str(challonge_id) + "'"
@@ -278,12 +281,11 @@ async def pairing(message):
 		# Mod version of command. Ping everybody in the tournament with their pairing.
 		for tournament in tournaments:
 			discord_output += "\nPairings for " + tournament["game-name"] + ": \n"
-			match_params = {'state':"open"}
-			# FIXME only get current matches (i.e. Round 1 or whatever.)
+			match_params = {'state':"pending"}
 			matches = challonge.matches.index(tournament["id"], **match_params)
 			for match in matches:
-				player1 = await getPlayerInfoWithChallonge(message, tournament, match["player1-id"])
-				player2 = await getPlayerInfoWithChallonge(message, tournament, match["player2-id"])
+				player1 = await getDiscordFightcadeUsingChallonge(message, tournament, match["player1-id"])
+				player2 = await getDiscordFightcadeUsingChallonge(message, tournament, match["player2-id"])
 				discord_output += player1 + " vs. " + player2 + "\n"
 	else:
 		# TODO Regular version of command. Only ping the person who asked.
