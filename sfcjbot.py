@@ -131,18 +131,33 @@ async def add_new_user_if_needed(message):
 	return
 
 async def describe(message):
-	# TODO also include Fightcade and Challonge usernames
 	discord_user = message.content.split('describe', 1)[-1].lstrip().rstrip()
-	users_games = await db_wrapper.execute(client, message.author, "SELECT distinct game FROM pools INNER JOIN users ON pools.player = users.discord_id WHERE username='" + discord_user + "'", False)
+	games_query = "SELECT DISTINCT game FROM pools INNER JOIN users ON pools.player = users.discord_id WHERE username='" + discord_user + "'"
+	users_games = await db_wrapper.execute(client, message.author, games_query, True)
+	user_description = ""
 	if users_games:
 		list_of_users_games=[]
 		for game_tuple in users_games:
 			list_of_users_games.append(game_tuple[0])
-		await client.send_message(message.author, discord_user + " is queued up for " + ", ".join(list_of_users_games))
-		print(str(datetime.now())+": told "+message.author.name + " that "+discord_user + " is queued up for " + ", ".join(users_games[0]))
+		user_description = discord_user + " is queued up for " + ", ".join(list_of_users_games) + "\n"
 	else:
-		await client.send_message(message.author, discord_user + " isn't queued up for any games.")
-		print(str(datetime.now())+": told "+message.author.name + " that "+ discord_user + " is not queued up for any games.")
+		user_description = discord_user + " isn't queued up for any games.\n"
+	user_description_query = "SELECT challonge, fightcade FROM users WHERE username='" + discord_user + "'"
+	user_description_result = await db_wrapper.execute(client, message.author, user_description_query, True)
+	if str(user_description_result) == "()":
+		await client.send_message(message.author, "I don't know anyone named " + discord_user + ".")
+		return
+	user_description_tuple = user_description_result[0]
+	if user_description_tuple[0] is not None:
+		user_description += "Their Challonge username is " + user_description_tuple[0] + "."
+	else:
+		user_description += "I don't know their Challonge username."
+	if user_description_tuple[1]:
+		user_description += " Their Fightcade username is " + user_description_tuple[1] + "."
+	else:
+		user_description += " I don't know their Fightcade username."
+	await client.send_message(message.author, user_description)
+	print(str(datetime.now())+": gave " + discord_user + "'s description to " + message.author.name + ".")
 	return
 
 async def getPlayerInfoWithChallonge(message, tournament, challonge_id):
@@ -249,7 +264,7 @@ async def match_random_game(message):
 	return
 
 async def pairing(message):
-	discord_output = "I don't have any tournaments running right now."
+	discord_output = ""
 	tournaments = []
 	tournaments_unfiltered = challonge.tournaments.index(state="underway")
 	# the challonge library I'm using currently doesn't perform that indexing correctly in python 3.5.
@@ -274,6 +289,8 @@ async def pairing(message):
 		# TODO Regular version of command. Only ping the person who asked.
 		discord_output = "Sorry, only mods are allowed to do that for now."
 	print(str(datetime.now())+": gave pairings to " + message.author.name)
+	if discord_output == "":
+		discord_output = "I don't have any tournaments running right now."
 	await client.send_message(message.channel, discord_output)
 	return
 

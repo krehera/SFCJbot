@@ -37,14 +37,14 @@ twitter_api = twitter.Api(consumer_key=twitter_consumer_key, consumer_secret=twi
 # get the game listed at the top of the file. remove it from the start of the list and add it to the end.
 # this readies the file to be read again next week, with the next game now at the top of the file and the current game now at the end
 game_to_make_a_tournament_for = games[0]
-print("Making a "+game_to_make_a_tournament_for + " tournament.\n")
+print("Making a "+game_to_make_a_tournament_for.rstrip() + " tournament.\n")
 games = games[1:]
 games.append(game_to_make_a_tournament_for)
 
 # create a tournament for the game
 tourny_url = "".join(random.choice(string.ascii_lowercase) for _ in xrange(0, 15))
-tournament = {'tournament_type':"double elimination", 'show_rounds':True, 'game_name':game_to_make_a_tournament_for, 'open_signup':True, 'public_sign_up':True, 'start_at':datetime_tourny_start}
-response = challonge.tournaments.create(game_to_make_a_tournament_for, tourny_url, **tournament) 
+tournament = {'tournament_type':"double elimination", 'show_rounds':True, 'game_name':game_to_make_a_tournament_for.rstrip(), 'open_signup':True, 'public_sign_up':True, 'start_at':datetime_tourny_start, 'check_in_duration':15}
+response = challonge.tournaments.create(game_to_make_a_tournament_for.rstrip(), tourny_url, **tournament)
 print("Challonge response:\n" + str(response))
 
 # write the file
