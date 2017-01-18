@@ -163,25 +163,32 @@ async def describe(message):
 	return
 
 
-async def getDiscordFightcadeUsingChallonge(message, tournament, challonge_id):
-	# We have a Challonge ID and we need a Discord user and a Fightcade username.
+async def getDiscordAndSecondaryUsingChallonge(message, tournament, challonge_id):
+	# We have a Challonge ID and we need a Discord user and a username for Fightcade/CFN/Steam/whatever.
 	# if we can't get that, we'll just print the Challonge username.
-	getDiscordFightcadeQuery = "SELECT discord_id, fightcade FROM users WHERE challonge_id = '" + str(challonge_id) + "'"
-	discordFightcadeTuple = await db_wrapper.execute(client, message.author, getDiscordFightcadeQuery, True)
+	# First, we use the name of the game to find what Secondary username we need.
+	secondary_query = "SELECT platform FROM games WHERE game = '" + tournament["game-name"] + "' or alias = '" + tournament["game-name"] + "'"
+	secondary = await db_wrapper.execute(client, message.author, secondary_query, True)
+	if str(secondary) == "()":
+		# this means the database did not have the data we were looking for.
+		# realistically, this should probably throw an exception.
+		return "I don't know how to find user info for this game."
+	getDiscordAndSecondaryQuery = "SELECT discord_id, " + secondary[0][0] + " FROM users WHERE challonge_id = '" + str(challonge_id) + "'"
+	discordAndSecondaryTuple = await db_wrapper.execute(client, message.author, getDiscordAndSecondaryQuery, True)
 	fallbackChallongeUsername = "Mystery User"
-	if str(discordFightcadeTuple) == "()":
+	if str(discordAndSecondaryTuple) == "()":
 		participants = challonge.participants.index(tournament["id"])
 		for participant in participants:
 			if participant["id"] == challonge_id:
 				newIDquery = "UPDATE users SET challonge_id = '" + str(challonge_id) + "' WHERE challonge = '" + str(participant["username"]) + "'"
 				await db_wrapper.execute(client, message.author, newIDquery, True)
-				discordFightcadeTuple = await db_wrapper.execute(client, message.author, getDiscordFightcadeQuery, True)
+				discordAndSecondaryTuple = await db_wrapper.execute(client, message.author, getDiscordAndSecondaryQuery, True)
 				fallbackChallongeUsername = str(participant["username"])
 				break
-		if str(discordFightcadeTuple) == "()":
+		if str(discordAndSecondaryTuple) == "()":
 			# at this point, we know we do not know which Discord user the Challonge ID we have corresponds to, so we just return their Challonge username.
 			return fallbackChallongeUsername
-	return message.server.get_member(discordFightcadeTuple[0][0]).mention + " (" + discordFightcadeTuple[0][1] + ")"
+	return message.server.get_member(discordAndSecondaryTuple[0][0]).mention + " (" + discordAndSecondaryTuple[0][1] + ")"
 
 async def is_member_queued_for_game(member, game):
 	print("is_member_queued_for_game called with member: "+member.name+" and game: "+game)
@@ -284,8 +291,8 @@ async def pairing(message):
 			match_params = {'state':"pending"}
 			matches = challonge.matches.index(tournament["id"], **match_params)
 			for match in matches:
-				player1 = await getDiscordFightcadeUsingChallonge(message, tournament, match["player1-id"])
-				player2 = await getDiscordFightcadeUsingChallonge(message, tournament, match["player2-id"])
+				player1 = await getDiscordAndSecondaryUsingChallonge(message, tournament, match["player1-id"])
+				player2 = await getDiscordAndSecondaryUsingChallonge(message, tournament, match["player2-id"])
 				discord_output += player1 + " vs. " + player2 + "\n"
 	else:
 		# TODO Regular version of command. Only ping the person who asked.
