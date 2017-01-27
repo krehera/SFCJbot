@@ -3,18 +3,26 @@ import challonge
 import asyncio
 import MySQLdb
 import random
+import datetime
 from sys import argv
 from db_wrapper import DB_Wrapper
-from datetime import datetime
 
 this_program, discord_credentials, mysql_credentials, challonge_credentials = argv
 client = discord.Client()
+marvel_release_date = datetime.date(2017, 3, 7)
 
 @client.event
 async def on_message(message):
 	#don't reply to bots
 	if message.author.bot:
 		return
+
+	# When's Mahvel? March 7th.
+	if "when's mahvel" in message.content or "whens mahvel" in message.content:
+		time_to_marvel = marvel_release_date - datetime.date.today()
+		await client.send_message(message.channel, message.author.mention + ", Ultimate Marvel vs Capcom 3 releases for PC on March 7, which is in " + str(time_to_marvel.days) + " days.")
+		return
+
 
 	if any(x.id == client.user.id for x in message.mentions) or message.content.startswith('SFCJbot'):
 		command = message.content
@@ -104,13 +112,14 @@ async def on_message(message):
 			await pairing(message)
 			return
 
+
 async def addgame(game_to_add, message):
 	# FIXME see GitHub issue about this.
 	if message.author.permissions_in(message.channel).kick_members:
 		add_game="INSERT INTO games (game) VALUES ('"+game_to_add+"')"
 		await db_wrapper.execute(client, message.author, add_game, True)
 		print(str(datetime.now())+": added game "+game_to_add)
-		await client.send_message(message.author, "added game "+game_to_add+". If you messed up, ping the bot owner!")
+		await client.send_message(message.author, "added game "+game_to_add+". If you messed up, ping Chish#2578!")
 	else:
 		await client.send_message(message.author, "You don't have permission to add games.")
 	return
@@ -388,7 +397,7 @@ async def unqueue(message, command):
 
 @client.event
 async def on_ready():
-	print(str(datetime.now()) + ": logged in as "+client.user.name)
+	print(str(datetime.datetime.now()) + ": logged in as "+client.user.name)
 	return
 
 # This is probably not the best way to do these things, but that's ok
