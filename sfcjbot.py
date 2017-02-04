@@ -18,7 +18,7 @@ async def on_message(message):
 		return
 
 	# When's Mahvel? March 7th.
-	if "when's mahvel" in message.content or "whens mahvel" in message.content:
+	if "when's mahvel" in message.content.lower() or "whens mahvel" in message.content.lower() or "when is mahvel" in message.content.lower():
 		time_to_marvel = marvel_release_date - datetime.date.today()
 		await client.send_message(message.channel, message.author.mention + ", Ultimate Marvel vs Capcom 3 releases for PC on March 7, which is in " + str(time_to_marvel.days) + " days.")
 		return
@@ -44,7 +44,7 @@ async def on_message(message):
 				print(time+": failed to set "+message.author.name+" to here.")
 				await client.send_message(message.author, "I was unable to set your status to here. Please ask Chish#2578 to check the logs at time "+time)
 				return
-			print(str(datetime.now())+": set "+message.author.name+" to here.")
+			print(str(datetime.datetime.now())+": set "+message.author.name+" to here.")
 			await client.send_message(message.author, "Your status was changed to 'here.'")
 			return
 
@@ -52,11 +52,11 @@ async def on_message(message):
 			await add_new_user_if_needed(message)
 			result = await db_wrapper.execute(client, message.author, "UPDATE users SET status='afk' WHERE discord_id="+message.author.id, False)
 			if result is None:
-				time = str(datetime.now())
+				time = str(datetime.datetime.now())
 				print(time+": failed to set "+message.author.name+" to away.")
 				await client.send_message(message.author, "I was unable to set your status to afk. Please ask Chish#2578 to check the logs at time "+time)
 				return
-			print(str(datetime.now())+": set "+message.author.name+" to afk.")
+			print(str(datetime.datetime.now())+": set "+message.author.name+" to afk.")
 			await client.send_message(message.author, "Your status was changed to 'afk.'")
 			return
 
@@ -118,7 +118,7 @@ async def addgame(game_to_add, message):
 	if message.author.permissions_in(message.channel).kick_members:
 		add_game="INSERT INTO games (game) VALUES ('"+game_to_add+"')"
 		await db_wrapper.execute(client, message.author, add_game, True)
-		print(str(datetime.now())+": added game "+game_to_add)
+		print(str(datetime.datetime.now())+": added game "+game_to_add)
 		await client.send_message(message.author, "added game "+game_to_add+". If you messed up, ping Chish#2578!")
 	else:
 		await client.send_message(message.author, "You don't have permission to add games.")
@@ -128,19 +128,19 @@ async def add_new_user_if_needed(message):
 	#This method also catches nickname changes (with the lower part there)
 	search_for_user = "SELECT discord_id FROM users WHERE discord_id='"+message.author.id+"'"
 	result = await db_wrapper.execute(client, message.author, search_for_user, True)
-	#print(str(datetime.now())+" add_new_user_if_needed found user: "+str(result))
+	#print(str(datetime.datetime.now())+" add_new_user_if_needed found user: "+str(result))
 	if str(result) == "()":
 		await db_wrapper.execute(client, message.author, "INSERT INTO users (discord_id) VALUES ('"+message.author.id+"')", True)
-		print(str(datetime.now())+": added user: "+message.author.id+" ("+message.author.name+")")
+		print(str(datetime.datetime.now())+": added user: "+message.author.id+" ("+message.author.name+")")
 		await db_wrapper.execute(client, message.author, "UPDATE users SET username='"+message.author.name+"' WHERE discord_id='"+message.author.id+"'", True)
-		print(str(datetime.now())+": set discord_id "+message.author.id+" to username "+message.author.name)
+		print(str(datetime.datetime.now())+": set discord_id "+message.author.id+" to username "+message.author.name)
 		return
 	search_for_user = "SELECT username FROM users WHERE discord_id='"+message.author.id+"'"
 	result = await db_wrapper.execute(client, message.author, search_for_user, True)
-	print(str(datetime.now())+": " + str(result[0][0]) + " already exists in the DB.")
+	print(str(datetime.datetime.now())+": " + str(result[0][0]) + " already exists in the DB.")
 	if str(result[0][0]) != message.author.name:
 		await db_wrapper.execute(client, message.author, "UPDATE users SET username='"+message.author.name+"' WHERE discord_id='"+message.author.id+"'", True)
-		print(str(datetime.now())+": discord_id "+message.author.id+" changed to username "+message.author.name)
+		print(str(datetime.datetime.now())+": discord_id "+message.author.id+" changed to username "+message.author.name)
 	return
 
 async def describe(message):
@@ -168,7 +168,7 @@ async def describe(message):
 	if user_description_tuple[2]:
 		user_description += " Their CFN is " + user_description_tuple[2] + "."
 	await client.send_message(message.author, user_description)
-	print(str(datetime.now())+": gave " + discord_user + "'s description to " + message.author.name + ".")
+	print(str(datetime.datetime.now())+": gave " + discord_user + "'s description to " + message.author.name + ".")
 	return
 
 
@@ -204,9 +204,9 @@ async def is_member_queued_for_game(member, game):
 	query = "SELECT UID FROM pools WHERE game='"+game.replace("'","''")+"' AND player='"+member.id+"'"
 	dbresult = await db_wrapper.execute(client, member, query, True)
 	if str(dbresult) != "()":
-		print(str(datetime.now())+": "+member.name+" was found to be queued for "+game)
+		print(str(datetime.datetime.now())+": "+member.name+" was found to be queued for "+game)
 		return True
-	print(str(datetime.now())+": "+member.name+" was found to NOT be queued for "+game)
+	print(str(datetime.datetime.now())+": "+member.name+" was found to NOT be queued for "+game)
 	return False
 
 async def match(message):
@@ -216,7 +216,7 @@ async def match(message):
 		return
 	get_players_marked_here = "SELECT discord_id, username FROM users JOIN pools WHERE discord_id = player AND game = (SELECT DISTINCT game FROM games WHERE game = '"+hopefully_a_game.replace("'","''")+"' OR ALIAS = '"+hopefully_a_game.replace("'","''")+"') AND status='here' AND discord_id <> '"+message.author.id+"'"
 	results = await db_wrapper.execute(client, message.author, get_players_marked_here, True)
-	print(str(datetime.now())+": "+message.author.name+" requested a match in "+hopefully_a_game+" and found: "+str(results))
+	print(str(datetime.datetime.now())+": "+message.author.name+" requested a match in "+hopefully_a_game+" and found: "+str(results))
 	if results is None:
 		await client.send_message(message.channel, 'Sorry, I couldn\'t find a match for you.\nDed gaem lmao')
 		return
@@ -234,7 +234,7 @@ async def match(message):
 
 	challenge_message = 'Hey, ' + ", ".join(mentions_list) +' let\'s play some '+hopefully_a_game+' with '+message.author.mention
 	await client.send_message(message.channel, challenge_message)
-	print(str(datetime.now())+": final match list for "+hopefully_a_game+": "+", ".join(usernames_list))
+	print(str(datetime.datetime.now())+": final match list for "+hopefully_a_game+": "+", ".join(usernames_list))
 	return
 
 async def match_random_game(message):
@@ -261,24 +261,24 @@ async def match_random_game(message):
 				games_to_players[game]=players
 		# Now we have a map of {games the user is queued for, all other matched players}
 		# We choose a random game (that actually has players) and match for that game.
-		#print(str(datetime.now())+": games_to_players: "+str(games_to_players))
+		#print(str(datetime.datetime.now())+": games_to_players: "+str(games_to_players))
 		if len(games_to_players.keys()) == 0:
-			print(str(datetime.now())+": failed to find a random game for "+message.author.name+".")
+			print(str(datetime.datetime.now())+": failed to find a random game for "+message.author.name+".")
 			await client.send_message(message.channel, "Sorry, I couldn't find a match for you.")
 			return
 		chosen_game=random.choice(list(games_to_players.keys()))
 		while (len(games_to_players[chosen_game]) == 0):
 			del games_to_players[chosen_game]
 			if len(games_to_players.keys()) == 0:
-				print(str(datetime.now())+": failed to find a random game for "+message.author.name+".")
+				print(str(datetime.datetime.now())+": failed to find a random game for "+message.author.name+".")
 				await client.send_message(message.channel, "Sorry, I couldn't find a match for you.")
 				return
 			chosen_game=random.choice(list(games_to_players.keys()))
-		print(str(datetime.now())+": randomly matched "+message.author.name+" in "+chosen_game+" with "+str(games_to_players[chosen_game]))
+		print(str(datetime.datetime.now())+": randomly matched "+message.author.name+" in "+chosen_game+" with "+str(games_to_players[chosen_game]))
 		challenge_message = 'Hey, ' + ", ".join(games_to_players[chosen_game]) +' let\'s play some '+chosen_game+' with '+message.author.mention
 		await client.send_message(message.channel, challenge_message)
 	else:
-		print(str(datetime.now())+": "+message.author.name+" tried to match a random game, but wasn't queued for anything.")
+		print(str(datetime.datetime.now())+": "+message.author.name+" tried to match a random game, but wasn't queued for anything.")
 		await client.send_message(message.channel, "You'll have to queue up for some games before I can match you, "+message.author.mention)
 	return
 
@@ -306,7 +306,7 @@ async def pairing(message):
 	else:
 		# TODO Regular version of command. Only ping the person who asked.
 		discord_output = "Sorry, only mods are allowed to do that for now."
-	print(str(datetime.now())+": gave pairings to " + message.author.name)
+	print(str(datetime.datetime.now())+": gave pairings to " + message.author.name)
 	if discord_output == "":
 		discord_output = "I don't have any tournaments running right now."
 	await client.send_message(message.channel, discord_output)
@@ -322,14 +322,14 @@ async def queue(message, command):
 			already_queued = await is_member_queued_for_game(message.author, game)
 			if not already_queued:
 				await db_wrapper.execute(client, message.author, "INSERT INTO pools (game, player) VALUES ('"+game.replace("'","''")+"', '"+message.author.id+"')", True)
-				print(str(datetime.now())+": added "+message.author.name+" to the queue for "+game)
+				print(str(datetime.datetime.now())+": added "+message.author.name+" to the queue for "+game)
 				await client.send_message(message.author, "Added you to the queue for " + hopefully_game)
 			else:
-				print(str(datetime.now())+": "+message.author.name+" was already queued for "+game)
+				print(str(datetime.datetime.now())+": "+message.author.name+" was already queued for "+game)
 				await client.send_message(message.author, "You're already queued up for "+hopefully_game+".")
 		else:
 			await client.send_message(message.author, "I\'ve never heard of a game called " + hopefully_game)
-			print(str(datetime.now())+": "+message.author.name+" searched for "+hopefully_game+" but found nothing.")
+			print(str(datetime.datetime.now())+": "+message.author.name+" searched for "+hopefully_game+" but found nothing.")
 	return
 
 async def set_secondary(message, thing_to_set):
@@ -341,18 +341,18 @@ async def set_secondary(message, thing_to_set):
 	query = "UPDATE users SET " + thing_to_set + " = '" + hopefully_a_valid_input + "' WHERE discord_id = '" + message.author.id + "'"
 	result = await db_wrapper.execute(client, message.author, query, True)
 	if result is None:
-		time = str(datetime.now())
+		time = str(datetime.datetime.now())
 		print(time+": failed to set "+message.author.name+"'s " + thing_to_set + " to "+hopefully_a_valid_input+".")
 		await client.send_message(message.author, "I was unable to set your " + thing_to_set +". Please ask Chish#2578 to check the logs at time "+time)
 		return
-	print(str(datetime.now())+": Set " + message.author.name + "'s " + thing_to_set + " to " + hopefully_a_valid_input)
+	print(str(datetime.datetime.now())+": Set " + message.author.name + "'s " + thing_to_set + " to " + hopefully_a_valid_input)
 	await client.send_message(message.author, "Set your " + thing_to_set + " to " + hopefully_a_valid_input+".")
 	return
 
 async def tell_aliases(message):
 	# aquire map of (full game name) to (list of all aliases for that game)
 	sql_games_and_aliases = await db_wrapper.execute(client, message.author, "SELECT game, alias FROM games ORDER BY game", True)
-	#print(str(datetime.now())+ ": games and aliases: "+str(sql_games_and_aliases))
+	#print(str(datetime.datetime.now())+ ": games and aliases: "+str(sql_games_and_aliases))
 	game_alias_map = {}
 	for game_alias_pair in sql_games_and_aliases:
 		if game_alias_pair[0] in game_alias_map:
@@ -374,7 +374,7 @@ async def tell_aliases(message):
 		readable_aliases = readable_aliases[:-2] # there are no aliases left, so remove that last comma + space
 		readable_aliases += "\n"
 
-	print(str(datetime.now())+ ": gave game/alias map to "+str(message.author.name))
+	print(str(datetime.datetime.now())+ ": gave game/alias map to "+str(message.author.name))
 	await client.send_message(message.author, "Here are all the aliases available for games I have available: \n" + readable_aliases)
 	return
 
@@ -387,7 +387,7 @@ async def unqueue(message, command):
 			already_queued = await is_member_queued_for_game(message.author, game[0][0])
 			if already_queued:
 				await db_wrapper.execute(client, message.author, "DELETE FROM pools WHERE game='"+game[0][0].replace("'","''")+"' AND player='"+message.author.id+"'", True)
-				print(str(datetime.now())+": removed "+message.author.name+" from the queue for "+game[0][0])
+				print(str(datetime.datetime.now())+": removed "+message.author.name+" from the queue for "+game[0][0])
 				await client.send_message(message.author, "Removed you from the queue for "+hopefully_game)
 			else:
 				await client.send_message(message.author, "You aren't in the queue for "+hopefully_game)
