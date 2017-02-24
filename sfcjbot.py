@@ -109,7 +109,7 @@ async def on_message(message):
 			return
 
 		if "pairing" in command.lower():
-			#await pairing(message)
+			await pairing(message)
 			return
 
 
@@ -176,7 +176,7 @@ async def getDiscordAndSecondaryUsingChallonge(message, tournament, challonge_id
 	# We have a Challonge ID and we need a Discord user and a username for Fightcade/CFN/Steam/whatever.
 	# if we can't get that, we'll just print the Challonge username.
 	# First, we use the name of the game to find what Secondary username we need.
-	secondary_query = "SELECT platform FROM games WHERE game = '" + tournament["game-name"] + "' or alias = '" + tournament["game-name"] + "'"
+	secondary_query = "SELECT platform FROM games WHERE game = '" + str(tournament["game-name"]) + "' or alias = '" + str(tournament["game-name"]) + "'"
 	secondary = await db_wrapper.execute(client, message.author, secondary_query, True)
 	if str(secondary) == "()":
 		# this means the database did not have the data we were looking for.
@@ -285,6 +285,7 @@ async def match_random_game(message):
 async def pairing(message):
 	discord_output = ""
 	tournaments = []
+	print(str(datetime.datetime.now())+": getting tournaments from Challonge API")
 	tournaments_unfiltered = challonge.tournaments.index(state="underway")
 	# the challonge library I'm using currently doesn't perform that indexing correctly in python 3.5.
 	# it doesn't actually filter out tournaments with any other state. It just returns all of them.
@@ -293,22 +294,20 @@ async def pairing(message):
 	for i in tournaments_unfiltered:
 		if i["state"] == "underway":
 			tournaments.append(i)
-	if message.author.permissions_in(message.channel).kick_members:
-		# Mod version of command. Ping everybody in the tournament with their pairing.
-		for tournament in tournaments:
-			discord_output += "\nPairings for " + tournament["game-name"] + ": \n"
-			match_params = {'state':"pending"}
-			matches = challonge.matches.index(tournament["id"], **match_params)
-			for match in matches:
+	for tournament in tournaments:
+		discord_output += "\nPairings for " + str(tournament["game-name"]) + ": \n"
+		match_params = {'state':"open"}
+		matches = challonge.matches.index(tournament["id"], **match_params)
+		for match in matches:
+			if str(match["state"]) == "open":
+				# should not need that conditional, but there is a bug in the Challonge API?
 				player1 = await getDiscordAndSecondaryUsingChallonge(message, tournament, match["player1-id"])
 				player2 = await getDiscordAndSecondaryUsingChallonge(message, tournament, match["player2-id"])
-				discord_output += player1 + " vs. " + player2 + "\n"
-	else:
-		# TODO Regular version of command. Only ping the person who asked.
-		discord_output = "Sorry, only mods are allowed to do that for now."
+				if message.author.permissions_in(message.channel).kick_members or message.author.mention in player1 or message.author.mention in player2:
+					discord_output += player1 + " vs. " + player2 + "\n"
 	print(str(datetime.datetime.now())+": gave pairings to " + message.author.name)
 	if discord_output == "":
-		discord_output = "I don't have any tournaments running right now."
+		discord_output = "I don't have any pairings available for you right now."
 	await client.send_message(message.channel, discord_output)
 	return
 
