@@ -17,7 +17,7 @@ async def on_message(message):
 	if message.author.bot:
 		return
 
-	# When's Mahvel? March 7th.
+	# When's Mahvel?
 	if "when's mahvel" in message.content.lower() or "whens mahvel" in message.content.lower() or "when is mahvel" in message.content.lower():
 		time_to_marvel = marvel_release_date - datetime.date.today()
 		await client.send_message(message.channel, message.author.mention + ", Ultimate Marvel vs Capcom 3 releases for PC on March 7, which is in " + str(time_to_marvel.days) + " days.")
@@ -109,7 +109,7 @@ async def on_message(message):
 			return
 
 		if "pairing" in command.lower():
-			await pairing(message)
+			#await pairing(message)
 			return
 
 
