@@ -24,7 +24,7 @@ async def on_message(message):
 		return
 
 
-	if any(x.id == client.user.id for x in message.mentions) or message.content.startswith('SFCJbot'):
+	if any(x.id == client.user.id for x in message.mentions) or message.content.lower().startswith('sfcjbot') or message.content.lower().startswith('@sfcjbot'):
 		command = message.content
 
 		# TODO find a good pattern to clean this up
@@ -288,7 +288,7 @@ async def pairing(message):
 	print(str(datetime.datetime.now())+": getting tournaments from Challonge API")
 	tournaments_unfiltered = challonge.tournaments.index(state="underway")
 	# the challonge library I'm using currently doesn't perform that indexing correctly in python 3.5.
-	# it doesn't actually filter out tournaments with any other state. It just returns all of them.
+	# it doesn't actually filter out tournaments or matches with any other state. It just returns all of them.
 	# it does have a unit test for this, but it fails on python 3.5.
 	# so, for now, I filter the tournaments manually.
 	for i in tournaments_unfiltered:
@@ -300,7 +300,7 @@ async def pairing(message):
 		matches = challonge.matches.index(tournament["id"], **match_params)
 		for match in matches:
 			if str(match["state"]) == "open":
-				# should not need that conditional, but there is a bug in the Challonge API?
+				# should not need that conditional. same filter problem mentioned above.
 				player1 = await getDiscordAndSecondaryUsingChallonge(message, tournament, match["player1-id"])
 				player2 = await getDiscordAndSecondaryUsingChallonge(message, tournament, match["player2-id"])
 				if message.author.permissions_in(message.channel).kick_members or message.author.mention in player1 or message.author.mention in player2:
