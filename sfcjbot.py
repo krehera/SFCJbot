@@ -88,16 +88,8 @@ async def on_message(message):
 			await unqueue(message, command.split('unqueue', 1)[-1].lstrip())
 			return
 
-		if command.startswith('Q '):
-			await queue(message, command[2:])
-			return
-
 		if "queue" in command.lower():
 			await queue(message, command.split('queue', 1)[-1].lstrip())
-			return
-
-		if command.startswith('unQ '):
-			await unqueue(message, command[4:])
 			return
 
 		if "addgame" in command:
@@ -110,6 +102,10 @@ async def on_message(message):
 
 		if "pairing" in command.lower():
 			await pairing(message)
+			return
+
+		if "start" in command.lower():
+			await start_tournament(message)
 			return
 
 
@@ -186,7 +182,7 @@ async def getDiscordAndSecondaryUsingChallonge(message, tournament, challonge_id
 	discordAndSecondaryTuple = await db_wrapper.execute(client, message.author, getDiscordAndSecondaryQuery, True)
 	fallbackChallongeUsername = "Mystery User"
 	if str(discordAndSecondaryTuple) == "()":
-		participants = challonge.participants.index(tournament["id"])
+		participants = await challonge.participants.index(tournament["id"])
 		for participant in participants:
 			if participant["id"] == challonge_id:
 				newIDquery = "UPDATE users SET challonge_id = '" + str(challonge_id) + "' WHERE challonge = '" + str(participant["username"]) + "'"
@@ -286,7 +282,7 @@ async def pairing(message):
 	discord_output = ""
 	tournaments = []
 	print(str(datetime.datetime.now())+": getting tournaments from Challonge API")
-	tournaments_unfiltered = challonge.tournaments.index(state="underway")
+	tournaments_unfiltered = await challonge.tournaments.index(state="underway")
 	# the challonge library I'm using currently doesn't perform that indexing correctly in python 3.5.
 	# it doesn't actually filter out tournaments or matches with any other state. It just returns all of them.
 	# it does have a unit test for this, but it fails on python 3.5.
@@ -297,7 +293,7 @@ async def pairing(message):
 	for tournament in tournaments:
 		discord_output += "\nPairings for " + str(tournament["game-name"]) + ": \n"
 		match_params = {'state':"open"}
-		matches = challonge.matches.index(tournament["id"], **match_params)
+		matches = await challonge.matches.index(tournament["id"], **match_params)
 		for match in matches:
 			if str(match["state"]) == "open":
 				# should not need that conditional. same filter problem mentioned above.
@@ -348,6 +344,24 @@ async def set_secondary(message, thing_to_set):
 	await client.send_message(message.author, "Set your " + thing_to_set + " to " + hopefully_a_valid_input+".")
 	return
 
+async def start_tournament(message):
+	# check to see if requester has permission to start a tournament
+	if message.author.permissions_in(message.channel).kick_members:
+		# we see if that person is an admin for our tournaments with the requested game
+		# first, get all tournaments that are currently checking in
+		tournaments = []
+		tournament_params= {'state':"checking-in"}
+		tournaments_unfiltered = await challonge.tournaments.index()
+		# due to API bug, I have to manually filter the tournaments
+		for i in tournaments_unfiltered:
+			if i["state"] == "checking_in":
+				tournaments.append(i)
+		print("tournaments: " + str(tournaments))
+		#for now just log all participants
+	else:
+		await client.send_message(message.author, "Sorry, you don't have permission to start tournaments.")
+	return
+
 async def tell_aliases(message):
 	# aquire map of (full game name) to (list of all aliases for that game)
 	sql_games_and_aliases = await db_wrapper.execute(client, message.author, "SELECT game, alias FROM games ORDER BY game", True)
@@ -362,13 +376,11 @@ async def tell_aliases(message):
 	# make it human-readable and give it to them
 	readable_aliases = ""
 	for game in sorted(game_alias_map):
-		#print("game: "+game)
 		readable_aliases += "**"+game+"**: "
 		if not game_alias_map[game]:
 			readable_aliases+= "No aliases so far.\n"
 			continue
 		for alias in game_alias_map[game]:
-			#print("alias: "+alias)
 			readable_aliases += alias+", "
 		readable_aliases = readable_aliases[:-2] # there are no aliases left, so remove that last comma + space
 		readable_aliases += "\n"
@@ -407,7 +419,7 @@ f = open(challonge_credentials, 'r')
 challonge_username = f.readline().rstrip()
 challonge_key = f.readline().rstrip()
 f.close()
-challonge.set_credentials(challonge_username, challonge_key)
+challonge = challonge.Account(challonge_username, challonge_key)
 f = open(mysql_credentials, 'r')
 db_user = f.readline().strip('\n')
 db_pwd = f.readline().strip('\n')
