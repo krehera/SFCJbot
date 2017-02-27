@@ -358,6 +358,7 @@ async def start_tournament(message):
 				tournaments.append(i)
 		print("tournaments: " + str(tournaments))
 		#for now just log all participants
+		
 	else:
 		await client.send_message(message.author, "Sorry, you don't have permission to start tournaments.")
 	return
