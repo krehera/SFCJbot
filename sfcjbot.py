@@ -352,22 +352,40 @@ async def set_secondary(message, thing_to_set):
 async def start_tournament(message):
 	# check to see if requester has permission to start a tournament
 	if message.author.permissions_in(message.channel).kick_members:
-		# we see if that person is an admin for our tournaments with the requested game
-		# first, get all tournaments that are currently checking in
+		# first, get all tournaments that are not yet started
 		tournaments = []
-		tournament_params= {'state':"checking_in"}
 		print(str(datetime.datetime.now())+": getting tournaments from Challonge")
-		tournaments_unfiltered = await challonge.tournaments.index(**tournament_params)
-		# due to API bug, I have to manually filter the tournaments
+		tournaments_unfiltered = await challonge.tournaments.index()
 		for i in tournaments_unfiltered:
-			if i["state"] == "checking_in":
+			if i["state"] == "checking_in" or i["state"] == "checked_in" or i["state"] == "pending":
 				tournaments.append(i)
-		#print("tournaments: " + str(tournaments))
-		#for now just log all participants
-		print(str(datetime.datetime.now())+": getting participants from Challonge")
+		# print("tournaments: " + str(tournaments) + "\n\n\n")
+		discord_output = ""
 		for tournament in tournaments:
-			participants = await challonge.participants.index(tournament["id"])
-			print(str(tournament["id"])+": " + str(participants)+"\n") 
+			# determine which tournaments needs to be started via user-provided URL
+			if tournament["full-challonge-url"] in message.content or tournament["full-challonge-url"].split("challonge.com/",1)[1] in message.content:
+				empty_params = {}
+				# if needed, process check-ins
+				if tournament["state"] == "checking_in":
+					print(str(datetime.datetime.now()) + ": processing check-ins for " + str(tournament["id"]))
+					await challonge.tournaments.process_check_ins(tournament['id'])
+				# start the tournament
+				print(str(datetime.datetime.now()) + ": starting tournament " + str(tournament["id"]))
+				await challonge.tournaments.start(tournament["id"], **empty_params)
+				# report round 1 pairings
+				discord_output += "\nPairings for " + str(tournament["game-name"]) + ": \n"
+				match_params = {'state':"open"}
+				matches = await challonge.matches.index(tournament["id"], **match_params)
+				for match in matches:
+					if str(match["state"]) == "open":
+					# should not need that conditional. This is a problem with the API or API library?
+						player1 = await getDiscordAndSecondaryUsingChallonge(message, tournament, match["player1-id"])
+						player2 = await getDiscordAndSecondaryUsingChallonge(message, tournament, match["player2-id"])
+						discord_output += player1 + " vs. " + player2 + "\n"
+		if discord_output:
+			await client.send_message(message.channel, discord_output)
+		else:
+			await client.send_message(message.author, "I couldn't start any tournaments. Be sure to specify which ones you want started using their URL.")
 	else:
 		await client.send_message(message.author, "Sorry, you don't have permission to start tournaments.")
 	return
