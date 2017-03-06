@@ -364,14 +364,13 @@ async def start_tournament(message):
 		for tournament in tournaments:
 			# determine which tournaments needs to be started via user-provided URL
 			if tournament["full-challonge-url"] in message.content or tournament["full-challonge-url"].split("challonge.com/",1)[1] in message.content:
-				empty_params = {}
 				# if needed, process check-ins
 				if tournament["state"] == "checking_in":
 					print(str(datetime.datetime.now()) + ": processing check-ins for " + str(tournament["id"]))
-					await challonge.tournaments.process_check_ins(tournament['id'])
+					await challonge.tournaments.process_check_ins(tournament["id"])
 				# start the tournament
 				print(str(datetime.datetime.now()) + ": starting tournament " + str(tournament["id"]))
-				await challonge.tournaments.start(tournament["id"], **empty_params)
+				await challonge.tournaments.start(tournament["id"])
 				# report round 1 pairings
 				discord_output += "\nPairings for " + str(tournament["game-name"]) + ": \n"
 				match_params = {'state':"open"}
