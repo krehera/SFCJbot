@@ -115,7 +115,6 @@ async def on_message(message):
 
 
 async def addgame(game_to_add, message):
-	#TODO needs testing
 	if message.author.permissions_in(message.channel).kick_members:
 		#check if that game already exists
 		await add_server_specific_tables_if_necessary(message)
@@ -156,17 +155,16 @@ async def add_new_user_if_needed(message):
 # Check if the server this message came from has its own games and pools tables.
 # If not, then add them.
 async def add_server_specific_tables_if_necessary(message):
-	#TODO needs testing
 	search_for_games_table = "SELECT count(*) FROM information_schema.TABLES WHERE (TABLE_SCHEMA = '" +db_db+ "') AND (TABLE_NAME = '" +message.server.id+ "_games')"
 	table_exists = await db_wrapper.execute(client, message.author, search_for_games_table, True)
-	if result == 0:
-		create_table = "CREATE TABLE " +message.server.id+ "_games (UID INT(11) NOT NULL PRIMARY KEY AUTO_INCREMENT, game VARCHAR(250), alias VARCHAR(5) UNIQUE, platform VARCHAR(25))"
+	if table_exists[0][0] == 0:
+		create_table = "CREATE TABLE " +message.server.id+ "_games (UID INT(11) NOT NULL PRIMARY KEY AUTO_INCREMENT, game VARCHAR(250), alias VARCHAR(50) UNIQUE, platform VARCHAR(25))"
 		table_created = await db_wrapper.execute(client, message.author, create_table, True)
 		print(str(datetime.datetime.now())+": created games table for server "+message.server.id+".")
 	
 	search_for_pools_table = "SELECT count(*) FROM information_schema.TABLES WHERE (TABLE_SCHEMA = '" +db_db+ "') AND (TABLE_NAME = '" +message.server.id+ "_pools')"
 	table_exists = await db_wrapper.execute(client, message.author, search_for_pools_table, True)
-	if result == 0:
+	if table_exists[0][0] == 0:
 		create_table = "CREATE TABLE " +message.server.id+ "_pools (UID INT(11) NOT NULL PRIMARY KEY AUTO_INCREMENT, game VARCHAR(250), player VARCHAR(50))"
 		table_created = await db_wrapper.execute(client, message.author, create_table, True)
 		print(str(datetime.datetime.now())+": created pools table for server "+message.server.id+".")
@@ -228,15 +226,14 @@ async def getDiscordAndSecondaryUsingChallonge(message, tournament, challonge_id
 			return fallbackChallongeUsername
 	return message.server.get_member(discordAndSecondaryTuple[0][0]).mention + " (" + discordAndSecondaryTuple[0][1] + ")"
 
-async def is_member_queued_for_game(member, game):
-	#FIXME need another argument to make this server-specific
-	print("is_member_queued_for_game called with member: "+member.name+" and game: "+game)
-	query = "SELECT UID FROM pools WHERE game='"+game.replace("'","''")+"' AND player='"+member.id+"'"
-	dbresult = await db_wrapper.execute(client, member, query, True)
+async def is_member_queued_for_game(message, game):
+	print("is_member_queued_for_game called with member: "+message.author.name+" and game: "+game)
+	query = "SELECT UID FROM " +message.server.id+ "_pools WHERE game='"+game.replace("'","''")+"' AND player='"+message.author.id+"'"
+	dbresult = await db_wrapper.execute(client, message.author, query, True)
 	if str(dbresult) != "()":
-		print(str(datetime.datetime.now())+": "+member.name+" was found to be queued for "+game)
+		print(str(datetime.datetime.now())+": "+message.author.name+" was found to be queued for "+game)
 		return True
-	print(str(datetime.datetime.now())+": "+member.name+" was found to NOT be queued for "+game)
+	print(str(datetime.datetime.now())+": "+message.author.name+" was found to NOT be queued for "+game)
 	return False
 
 async def match(message):
@@ -348,7 +345,7 @@ async def queue(message, command):
 		game = await db_wrapper.execute(client, message.author, "SELECT game FROM " +message.server.id+ "_games WHERE game='"+hopefully_game.replace("'","''")+"' OR alias='"+hopefully_game.replace("'","''")+"'", True)
 		if str(game) != "()":
 			game = game[0][0]
-			already_queued = await is_member_queued_for_game(message.author, game)
+			already_queued = await is_member_queued_for_game(message, game)
 			if not already_queued:
 				await db_wrapper.execute(client, message.author, "INSERT INTO " +message.server.id+ "_pools (game, player) VALUES ('"+game.replace("'","''")+"', '"+message.author.id+"')", True)
 				print(str(datetime.datetime.now())+": added "+message.author.name+" to the queue for "+game)
@@ -451,7 +448,7 @@ async def unqueue(message, command):
 	for hopefully_game in hopefully_list_of_games:
 		game = await db_wrapper.execute(client, message.author, "SELECT game FROM " +message.server.id+ "_games WHERE (game='"+hopefully_game.replace("'","''")+"' OR alias='"+hopefully_game.replace("'","''")+"')", True)
 		if str(game) != "()":
-			already_queued = await is_member_queued_for_game(message.author, game[0][0])
+			already_queued = await is_member_queued_for_game(message, game[0][0])
 			if already_queued:
 				await db_wrapper.execute(client, message.author, "DELETE FROM " +message.server.id+ "_pools WHERE game='"+game[0][0].replace("'","''")+"' AND player='"+message.author.id+"'", True)
 				print(str(datetime.datetime.now())+": removed "+message.author.name+" from the queue for "+game[0][0])
