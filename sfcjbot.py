@@ -106,11 +106,11 @@ async def on_message(message):
 			return
 
 		if "pairing" in command.lower():
-			await pairing(message)
+			#await pairing(message)
 			return
 
 		if "start" in command.lower():
-			await start_tournament(message)
+			#await start_tournament(message)
 			return
 
 
