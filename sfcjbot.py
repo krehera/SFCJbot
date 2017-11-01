@@ -372,7 +372,7 @@ async def queue(message, command):
 async def removealias(alias_to_remove, message):
 	#TODO hopefully this isn't the only record of that game in the table, huh?
 	if message.author.permissions_in(message.channel).kick_members:
-		removealias = "DELETE FROM " +message.server.id+ "_games WHERE alias='" +alias_to_remove"'"
+		removealias = "DELETE FROM " +message.server.id+ "_games WHERE alias='" +alias_to_remove+"'"
 		result = await db_wrapper.execute(client, message.author, removealias, True)
 		print(str(datetime.datetime.now())+ ": deleted the alias " +alias_to_remove+ " from server " +message.server.id+ "'"
 		await client.send_message(message.author, "Removed the alias " +alias_to_remove+ " from " + message.server.name + ".")
