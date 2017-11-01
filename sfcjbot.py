@@ -9,7 +9,7 @@ from db_wrapper import DB_Wrapper
 
 this_program, discord_credentials, mysql_credentials, challonge_credentials = argv
 client = discord.Client()
-marvel_release_date = datetime.date(2017, 7, 16)
+next_marvel_event_date = datetime.date(2017, 11, 4)
 
 @client.event
 async def on_message(message):
@@ -19,11 +19,11 @@ async def on_message(message):
 
 	# When's Mahvel?
 	if "when's mahvel" in message.content.lower() or "whens mahvel" in message.content.lower() or "when is mahvel" in message.content.lower():
-		time_to_marvel = marvel_release_date - datetime.date.today()
+		time_to_marvel = next_marvel_event_date - datetime.date.today()
 		if time_to_marvel.days == 0:
 			await client.send_message(message.channel, "IT'S MAHVEL TIME, BAYBEE! https://media.giphy.com/media/ToMjGpmBhHxpWpmtFcs/giphy.gif")
 		elif time_to_marvel.days > 0:
-			await client.send_message(message.channel, message.author.mention + ", Ultimate Marvel vs Capcom 3 Evo finals are on Sunday July 16th, which is in " + str(time_to_marvel.days) + " days.")
+			await client.send_message(message.channel, message.author.mention + ", the final Battle for the Stones qualifying tournament takes place at Latin America Finals on November 4th, which is in " + str(time_to_marvel.days) + " days.")
 		else:
 			await client.send_message(message.channel, "Sorry, " + message.author.mention + ", I don't know when the next Mahvel thing is happening.")
 		return
