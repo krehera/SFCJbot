@@ -97,8 +97,16 @@ async def on_message(message):
 			await queue(message, command.split('queue', 1)[-1].lstrip())
 			return
 
-		if "addgame" in command:
+		if "addgame" in command.lower():
 			await addgame(command.split('addgame',1)[-1].lstrip(), message)
+			return
+
+		if "removealias" in command.lower():
+			await removealias(command.split('removealias',1)[-1].lstrip(), message)
+			return
+
+		if "removegame" in command.lower():
+			await removegame(command.split('removegame',1)[-1].lstrip(), message)
 			return
 
 		if "about" in command.lower():
@@ -113,6 +121,9 @@ async def on_message(message):
 			#await start_tournament(message)
 			return
 
+async def addalias(alias_to_add, game_title, message):
+	#if message.author.permissions_in(message.channel).kick_members:
+	return
 
 async def addgame(game_to_add, message):
 	if message.author.permissions_in(message.channel).kick_members:
@@ -356,6 +367,34 @@ async def queue(message, command):
 		else:
 			await client.send_message(message.author, "I\'ve never heard of a game called " + hopefully_game)
 			print(str(datetime.datetime.now())+": "+message.author.name+" searched for "+hopefully_game+" but found nothing.")
+	return
+
+async def removealias(alias_to_remove, message):
+	#TODO hopefully this isn't the only record of that game in the table, huh?
+	if message.author.permissions_in(message.channel).kick_members:
+		removealias = "DELETE FROM " +message.server.id+ "_games WHERE alias='" +alias_to_remove"'"
+		result = await db_wrapper.execute(client, message.author, removealias, True)
+		print(str(datetime.datetime.now())+ ": deleted the alias " +alias_to_remove+ " from server " +message.server.id+ "'"
+		await client.send_message(message.author, "Removed the alias " +alias_to_remove+ " from " + message.server.name + ".")
+	else:
+		await client.send_message(message.author, "You don't have permission to remove aliases on " +message.server.name+ ".")
+	return
+
+async def removegame(game_to_remove, message):
+	#TODO this doesn't have a way of telling if anything actually happened yet.
+	if message.author.permissions_in(message.channel).kick_members:
+		removegame = "DELETE FROM " +message.server.id+ "_games WHERE game='" +game_to_remove+"' OR alias='" +game_to_remove+ "'"
+		result = await db_wrapper.execute(client, message.author, removegame, True)
+		print(str(datetime.datetime.now())+ ": removed " +game_to_remove+ " from server " +message.server.id+ ".")
+		await client.send_message(message.author, "Removed " +game_to_remove+ " from " +message.server.name+ ".")
+	
+		# Also unqueue any users that were queued for that game!
+		unqueue = "DELETE FROM " +message.server.id+ "_pools WHERE game='" +game_to_remove+ "'"
+		result = await db_wrapper.execute(client, message.author, unqueue, True)
+		print(str(datetime.datetime.now())+ ": foribly dequeued users for "+game_to_remove+ " on server " +message.server.id+ ".")
+		#TODO consider sending a message to the server about this.
+	else:
+		await client.send_message(message.author, "You don't have permission to remove games on " +message.server.name+ ".")
 	return
 
 async def set_secondary(message, thing_to_set):
