@@ -82,7 +82,7 @@ async def on_message(message):
 
 		# The remainder of commands require a specific server in order to function. (ignore these commands in PMs)
 		# Returning here keeps the program from coughing exceptions into the log.
-		if (!message.server):
+		if message.server is None:
 			return
 
 		if "match" in command:
