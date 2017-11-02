@@ -14,7 +14,7 @@ class DB_Wrapper:
 
 	async def execute(self, client, member, sql_command, notify):
 		try:
-			db_connection = MySQLdb.connect(user=self.user, passwd=self.passwd, host=self.host, db=self.db)
+			db_connection = MySQLdb.connect(user=self.user, passwd=self.passwd, host=self.host, db=self.db, charset="utf8mb4")
 			cursor = db_connection.cursor()
 			cursor.execute(sql_command)
 			result = cursor.fetchall()

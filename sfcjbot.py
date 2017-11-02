@@ -126,6 +126,7 @@ async def on_message(message):
 			return
 
 async def addalias(alias_to_add, game_title, message):
+	#TODO
 	#if message.author.permissions_in(message.channel).kick_members:
 	return
 
@@ -133,10 +134,10 @@ async def addgame(game_to_add, message):
 	if message.author.permissions_in(message.channel).kick_members:
 		#check if that game already exists
 		await add_server_specific_tables_if_necessary(message)
-		search_for_game = "SELECT game FROM " +message.server.id+ "_games WHERE game='"+game_to_add+"'"
+		search_for_game = "SELECT game FROM " +message.server.id+ "_games WHERE game='"+game_to_add.replace("'","''")+"'"
 		result = await db_wrapper.execute(client, message.author, search_for_game, True)
 		if str(result) == "()":
-			add_game="INSERT INTO "+message.server.id+"_games (game) VALUES ('"+game_to_add+"')"
+			add_game="INSERT INTO "+message.server.id+"_games (game) VALUES ('"+game_to_add.replace("'","''")+"')"
 			await db_wrapper.execute(client, message.author, add_game, True)
 			print(str(datetime.datetime.now())+": added game "+game_to_add+ " to server "+message.server.id)
 			await client.send_message(message.author, "Added game "+game_to_add+".")
@@ -376,7 +377,7 @@ async def queue(message, command):
 async def removealias(alias_to_remove, message):
 	#TODO hopefully this isn't the only record of that game in the table, huh?
 	if message.author.permissions_in(message.channel).kick_members:
-		removealias = "DELETE FROM " +message.server.id+ "_games WHERE alias='" +alias_to_remove+"'"
+		removealias = "DELETE FROM " +message.server.id+ "_games WHERE alias='" +alias_to_remove.replace("'","''")+"'"
 		result = await db_wrapper.execute(client, message.author, removealias, True)
 		print(str(datetime.datetime.now())+ ": deleted the alias " +alias_to_remove+ " from server " +message.server.id+ "'")
 		await client.send_message(message.author, "Removed the alias " +alias_to_remove+ " from " +message.server.name+ ".")
@@ -387,13 +388,13 @@ async def removealias(alias_to_remove, message):
 async def removegame(game_to_remove, message):
 	#TODO this doesn't have a way of telling if anything actually happened yet.
 	if message.author.permissions_in(message.channel).kick_members:
-		removegame = "DELETE FROM " +message.server.id+ "_games WHERE game='" +game_to_remove+"' OR alias='" +game_to_remove+ "'"
+		removegame = "DELETE FROM " +message.server.id+ "_games WHERE game='" +game_to_remove.replace("'","''")+"' OR alias='" +game_to_remove.replace("'","''")+ "'"
 		result = await db_wrapper.execute(client, message.author, removegame, True)
 		print(str(datetime.datetime.now())+ ": removed " +game_to_remove+ " from server " +message.server.id+ ".")
 		await client.send_message(message.author, "Removed " +game_to_remove+ " from " +message.server.name+ ".")
 	
 		# Also unqueue any users that were queued for that game!
-		unqueue = "DELETE FROM " +message.server.id+ "_pools WHERE game='" +game_to_remove+ "'"
+		unqueue = "DELETE FROM " +message.server.id+ "_pools WHERE game='" +game_to_remove.replace("'","''")+ "'"
 		result = await db_wrapper.execute(client, message.author, unqueue, True)
 		print(str(datetime.datetime.now())+ ": foribly dequeued users for "+game_to_remove+ " on server " +message.server.id+ ".")
 		#TODO consider sending a message to the server about this.
