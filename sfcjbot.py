@@ -28,19 +28,10 @@ async def on_message(message):
 			await client.send_message(message.channel, "Sorry, " + message.author.mention + ", I don't know when the next Mahvel thing is happening.")
 		return
 
-
 	if any(x.id == client.user.id for x in message.mentions) or message.content.lower().startswith('sfcjbot') or message.content.lower().startswith('@sfcjbot'):
 		command = message.content
 
-		# TODO find a good pattern to clean this up
-
-		if "match" in command:
-			await match(message)
-			return
-
-		if "help" in command.lower():
-			await client.send_message(message.author, "I\'m SFCJbot! I help SFCJ members play their favorite fighting games! Check out https://github.com/krehera/SFCJbot for documentation.")
-			return
+		# TODO find a good pattern to clean all these commands all these up (including after the next comment)
 
 		if "here" in command.lower():
 			await add_new_user_if_needed(message)
@@ -65,6 +56,14 @@ async def on_message(message):
 			await client.send_message(message.author, "Your status was changed to 'afk.'")
 			return
 
+		if "help" in command.lower():
+			await client.send_message(message.author, "I\'m SFCJbot! I help SFCJ members play their favorite fighting games! Check out https://github.com/krehera/SFCJbot for documentation.")
+			return
+
+		if "about" in command.lower():
+			await client.send_message(message.author, "SFCJbot is running on a Raspberry Pi and is powered by the following technologies:\nRaspbian GNU/Linux 8 (jessie)\nPython 3.5\nDiscord.py\nMySQL and MySQLdb\npychallonge")
+			return
+
 		if "set_fightcade" in command.lower() or "set fightcade" in command.lower() or "fightcade" in command.lower():
 			await set_secondary(message, "fightcade")
 			return
@@ -79,6 +78,15 @@ async def on_message(message):
 
 		if "set_cfn" in command.lower() or "set cfn" in command.lower() or "cfn" in command.lower():
 			await set_secondary(message, "cfn")
+			return
+
+		# The remainder of commands require a specific server in order to function. (ignore these commands in PMs)
+		# Returning here keeps the program from coughing exceptions into the log.
+		if (!message.server):
+			return
+
+		if "match" in command:
+			await match(message)
 			return
 
 		if "alias" in command.lower() or "games" in command.lower():
@@ -107,10 +115,6 @@ async def on_message(message):
 
 		if "removegame" in command.lower():
 			await removegame(command.split('removegame',1)[-1].lstrip(), message)
-			return
-
-		if "about" in command.lower():
-			await client.send_message(message.author, "SFCJbot is running on a Raspberry Pi and is powered by the following technologies:\nRaspbian GNU/Linux 8 (jessie)\nPython 3.5\nDiscord.py\nMySQL and MySQLdb\npychallonge")
 			return
 
 		if "pairing" in command.lower():
@@ -374,8 +378,8 @@ async def removealias(alias_to_remove, message):
 	if message.author.permissions_in(message.channel).kick_members:
 		removealias = "DELETE FROM " +message.server.id+ "_games WHERE alias='" +alias_to_remove+"'"
 		result = await db_wrapper.execute(client, message.author, removealias, True)
-		print(str(datetime.datetime.now())+ ": deleted the alias " +alias_to_remove+ " from server " +message.server.id+ "'"
-		await client.send_message(message.author, "Removed the alias " +alias_to_remove+ " from " + message.server.name + ".")
+		print(str(datetime.datetime.now())+ ": deleted the alias " +alias_to_remove+ " from server " +message.server.id+ "'")
+		await client.send_message(message.author, "Removed the alias " +alias_to_remove+ " from " +message.server.name+ ".")
 	else:
 		await client.send_message(message.author, "You don't have permission to remove aliases on " +message.server.name+ ".")
 	return
