@@ -105,6 +105,10 @@ async def on_message(message):
 			await queue(message, command.split('queue', 1)[-1].lstrip())
 			return
 
+		if "removealias" in command.lower():
+			await removealias(command.split('removealias',1)[-1].lstrip(), message)
+			return
+
 		if "alias" in command.lower():
 			parse_me = command.split('alias', 1)[-1].lstrip()
 			if "to mean" in parse_me:
@@ -116,10 +120,6 @@ async def on_message(message):
 
 		if "addgame" in command.lower():
 			await addgame(command.split('addgame',1)[-1].lstrip(), message)
-			return
-
-		if "removealias" in command.lower():
-			await removealias(command.split('removealias',1)[-1].lstrip(), message)
 			return
 
 		if "removegame" in command.lower():
@@ -140,8 +140,8 @@ async def addalias(alias_to_add, game_title, message):
 		# Check if that alias already exists
 		search_for_alias = "SELECT COUNT(*) FROM " +message.server.id+ "_games WHERE alias='"+alias_to_add.replace("'","''")+"' OR game='"+alias_to_add.replace("'","''")+"'"
 		search_result = await db_wrapper.execute(client, message.author, search_for_alias, True)
-		print(str(datetime.datetime.now())+": found "+str(search_results)+ " aliases")
-		if search_result:
+		print(str(datetime.datetime.now())+": found "+str(search_result)+ " aliases")
+		if search_result[0][0]:
 			# Alias already exists.
 			print(str(datetime.datetime.now())+": "+message.author.id+" wanted to add alias "+alias_to_add+ " for game " +game_title+ " to server "+message.server.id+" but it already existed.")
 			await client.send_message(message.author, "That alias already exists for "+message.server.name+".")
@@ -149,7 +149,8 @@ async def addalias(alias_to_add, game_title, message):
 			# Check if the game they named actually exists.
 			game_exist = "SELECT COUNT(*) FROM "+message.server.id+"_games WHERE game='"+game_title.replace("'","''")+"'"
 			does_game_exist = await db_wrapper.execute(client, message.author, game_exist, True)
-			if does_game_exist is False:
+			print("does that game exist? "+str(does_game_exist[0][0]))
+			if does_game_exist[0][0] == 0:
 				print(str(datetime.datetime.now())+": Failed to create an alias \""+alias_to_add+"\" for user "+message.author.id+" on server "+message.server.id+" because the game they named ("+game_title+") didn't exist.")
 				await client.send_message(message.author, "I've never heard of "+game_title+". Perhaps you misspelled it?")
 				return
@@ -511,7 +512,8 @@ async def tell_aliases(message):
 			readable_aliases+= "No aliases so far.\n"
 			continue
 		for alias in game_alias_map[game]:
-			readable_aliases += alias+", "
+			if alias is not None:
+				readable_aliases += alias+", "
 		readable_aliases = readable_aliases[:-2] # there are no aliases left, so remove that last comma + space
 		readable_aliases += "\n"
 
