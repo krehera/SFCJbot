@@ -1,4 +1,4 @@
-##All commands should start with mentioning the bot (@SFCJbot)
+#All commands should start with mentioning the bot (@SFCJbot)
 
 commands:
 
@@ -6,7 +6,7 @@ commands:
 
 **games** - lists the games SFCJbot offers and their shorthand aliases
 
-**alias** - lists the games SFCJbot offers and their shorthand aliases
+**aliases** - lists the games SFCJbot offers and their shorthand aliases
 
 **queue [game]** - adds you to the queue for [game]
 
@@ -24,4 +24,10 @@ commands:
 
 mod-only commands:
 
-**addgame [game]** - lets the bot recognize [game] as a valid game. (this command is not working for now.)
+**addgame [game]** - lets the bot recognize [game] as a valid game.
+
+**alias [alias] to mean [game]** - lets the bot recognize [alias] as an alias for [game]
+
+**removegame [game]** - removes a game and probably makes players sad!
+
+**removealias [alias]** - removes an alias.
