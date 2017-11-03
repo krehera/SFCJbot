@@ -135,12 +135,10 @@ async def on_message(message):
 			return
 
 async def addalias(alias_to_add, game_title, message):
-	print(str(datetime.datetime.now())+ ": attempting to assign alias " +alias_to_add+ " to game " +game_title+ " on server " +message.server.id+ ".")
 	if message.author.permissions_in(message.channel).kick_members:
 		# Check if that alias already exists
 		search_for_alias = "SELECT COUNT(*) FROM " +message.server.id+ "_games WHERE alias='"+alias_to_add.replace("'","''")+"' OR game='"+alias_to_add.replace("'","''")+"'"
 		search_result = await db_wrapper.execute(client, message.author, search_for_alias, True)
-		print(str(datetime.datetime.now())+": found "+str(search_result)+ " aliases")
 		if search_result[0][0]:
 			# Alias already exists.
 			print(str(datetime.datetime.now())+": "+message.author.id+" wanted to add alias "+alias_to_add+ " for game " +game_title+ " to server "+message.server.id+" but it already existed.")
@@ -149,7 +147,6 @@ async def addalias(alias_to_add, game_title, message):
 			# Check if the game they named actually exists.
 			game_exist = "SELECT COUNT(*) FROM "+message.server.id+"_games WHERE game='"+game_title.replace("'","''")+"'"
 			does_game_exist = await db_wrapper.execute(client, message.author, game_exist, True)
-			print("does that game exist? "+str(does_game_exist[0][0]))
 			if does_game_exist[0][0] == 0:
 				print(str(datetime.datetime.now())+": Failed to create an alias \""+alias_to_add+"\" for user "+message.author.id+" on server "+message.server.id+" because the game they named ("+game_title+") didn't exist.")
 				await client.send_message(message.author, "I've never heard of "+game_title+". Perhaps you misspelled it?")
