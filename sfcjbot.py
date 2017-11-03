@@ -386,22 +386,20 @@ async def pairing(message):
 
 async def queue(message, command):
 	await add_new_user_if_needed(message)
-	hopefully_list_of_games = command.split(" ")
-	for hopefully_game in hopefully_list_of_games:
-		game = await db_wrapper.execute(client, message.author, "SELECT game FROM " +message.server.id+ "_games WHERE game='"+hopefully_game.replace("'","''")+"' OR alias='"+hopefully_game.replace("'","''")+"'", True)
-		if str(game) != "()":
-			game = game[0][0]
-			already_queued = await is_member_queued_for_game(message, game)
-			if not already_queued:
-				await db_wrapper.execute(client, message.author, "INSERT INTO " +message.server.id+ "_pools (game, player) VALUES ('"+game.replace("'","''")+"', '"+message.author.id+"')", True)
-				print(str(datetime.datetime.now())+": added "+message.author.name+" to the queue for "+game)
-				await client.send_message(message.author, "Added you to the queue for " + hopefully_game)
-			else:
-				print(str(datetime.datetime.now())+": "+message.author.name+" was already queued for "+game)
-				await client.send_message(message.author, "You're already queued up for "+hopefully_game+".")
+	game = await db_wrapper.execute(client, message.author, "SELECT game FROM " +message.server.id+ "_games WHERE game='"+command.replace("'","''")+"' OR alias='"+command.replace("'","''")+"'", True)
+	if str(game) != "()":
+		game = game[0][0]
+		already_queued = await is_member_queued_for_game(message, game)
+		if not already_queued:
+			await db_wrapper.execute(client, message.author, "INSERT INTO " +message.server.id+ "_pools (game, player) VALUES ('"+game.replace("'","''")+"', '"+message.author.id+"')", True)
+			print(str(datetime.datetime.now())+": added "+message.author.name+" to the queue for "+game)
+			await client.send_message(message.author, "Added you to the queue for " + game)
 		else:
-			await client.send_message(message.author, "I\'ve never heard of a game called " + hopefully_game)
-			print(str(datetime.datetime.now())+": "+message.author.name+" searched for "+hopefully_game+" but found nothing.")
+			print(str(datetime.datetime.now())+": "+message.author.name+" was already queued for "+game)
+			await client.send_message(message.author, "You're already queued up for "+game+".")
+	else:
+		await client.send_message(message.author, "I\'ve never heard of a game called " + hopefully_game)
+		print(str(datetime.datetime.now())+": "+message.author.name+" searched for "+hopefully_game+" on server " +message.server.id+" but found nothing.")
 	return
 
 async def removealias(alias_to_remove, message):
