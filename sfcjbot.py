@@ -89,7 +89,7 @@ async def on_message(message):
 			await match(message)
 			return
 
-		if "alias" in command.lower() or "games" in command.lower():
+		if "aliases" in command.lower() or "games" in command.lower():
 			await tell_aliases(message)
 			return
 
@@ -103,6 +103,15 @@ async def on_message(message):
 
 		if "queue" in command.lower():
 			await queue(message, command.split('queue', 1)[-1].lstrip())
+			return
+
+		if "alias" in command.lower():
+			parse_me = command.split('alias', 1)[-1].lstrip()
+			if "to mean" in parse_me:
+				parsed = parse_me.split("to mean")
+				await addalias(parsed[0].strip(), parsed[1].strip(), message)
+			else:
+				await client.send_message(message.author, "You need to use \"alias <alias> to mean <game title>\" to set an alias.")
 			return
 
 		if "addgame" in command.lower():
@@ -126,13 +135,36 @@ async def on_message(message):
 			return
 
 async def addalias(alias_to_add, game_title, message):
-	#TODO
-	#if message.author.permissions_in(message.channel).kick_members:
+	print(str(datetime.datetime.now())+ ": attempting to assign alias " +alias_to_add+ " to game " +game_title+ " on server " +message.server.id+ ".")
+	if message.author.permissions_in(message.channel).kick_members:
+		# Check if that alias already exists
+		search_for_alias = "SELECT COUNT(*) FROM " +message.server.id+ "_games WHERE alias='"+alias_to_add.replace("'","''")+"' OR game='"+alias_to_add.replace("'","''")+"'"
+		search_result = await db_wrapper.execute(client, message.author, search_for_alias, True)
+		print(str(datetime.datetime.now())+": found "+str(search_results)+ " aliases")
+		if search_result:
+			# Alias already exists.
+			print(str(datetime.datetime.now())+": "+message.author.id+" wanted to add alias "+alias_to_add+ " for game " +game_title+ " to server "+message.server.id+" but it already existed.")
+			await client.send_message(message.author, "That alias already exists for "+message.server.name+".")
+		else:
+			# Check if the game they named actually exists.
+			game_exist = "SELECT COUNT(*) FROM "+message.server.id+"_games WHERE game='"+game_title.replace("'","''")+"'"
+			does_game_exist = await db_wrapper.execute(client, message.author, game_exist, True)
+			if does_game_exist is False:
+				print(str(datetime.datetime.now())+": Failed to create an alias \""+alias_to_add+"\" for user "+message.author.id+" on server "+message.server.id+" because the game they named ("+game_title+") didn't exist.")
+				await client.send_message(message.author, "I've never heard of "+game_title+". Perhaps you misspelled it?")
+				return
+			# Add the new alias.
+			add_alias = "INSERT INTO " +message.server.id+ "_games (game, alias) VALUES ('"+game_title.replace("'","''")+"','"+alias_to_add.replace("'","''")+"')"
+			await db_wrapper.execute(client, message.author, add_alias, True)
+			print(str(datetime.datetime.now())+": "+message.author.id+" added alias "+alias_to_add+" for game "+game_title+" in server "+message.server.id+".")
+			await client.send_message(message.author, "Added the alias \""+alias_to_add+"\" for "+game_title+" in "+message.server.name+".")
+	else:
+		await client.send_message(message.author, "You don't have permission to add aliases in " +message.server.name+ ".")
 	return
 
 async def addgame(game_to_add, message):
 	if message.author.permissions_in(message.channel).kick_members:
-		#check if that game already exists
+		# Check if that game already exists
 		await add_server_specific_tables_if_necessary(message)
 		search_for_game = "SELECT game FROM " +message.server.id+ "_games WHERE game='"+game_to_add.replace("'","''")+"'"
 		result = await db_wrapper.execute(client, message.author, search_for_game, True)
@@ -146,7 +178,7 @@ async def addgame(game_to_add, message):
 			await client.send_message(message.author, "That game already exists.")
 
 	else:
-		await client.send_message(message.author, "You don't have permission to add games.")
+		await client.send_message(message.author, "You don't have permission to add games in " +message.server.name+ ".")
 	return
 
 async def add_new_user_if_needed(message):
@@ -394,10 +426,11 @@ async def removegame(game_to_remove, message):
 		await client.send_message(message.author, "Removed " +game_to_remove+ " from " +message.server.name+ ".")
 	
 		# Also unqueue any users that were queued for that game!
+		#TODO First we make a list of all users that were queued for that game on that server (so we can notify them they were dequeued)
 		unqueue = "DELETE FROM " +message.server.id+ "_pools WHERE game='" +game_to_remove.replace("'","''")+ "'"
 		result = await db_wrapper.execute(client, message.author, unqueue, True)
 		print(str(datetime.datetime.now())+ ": foribly dequeued users for "+game_to_remove+ " on server " +message.server.id+ ".")
-		#TODO consider sending a message to the server about this.
+		#TODO consider sending a message to the server or users about this.
 	else:
 		await client.send_message(message.author, "You don't have permission to remove games on " +message.server.name+ ".")
 	return
