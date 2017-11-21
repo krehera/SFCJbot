@@ -1,4 +1,7 @@
 auth/
 logs/
+ENV/
+pylint_results/
+src/
 __pycache__/
 *.pyc
