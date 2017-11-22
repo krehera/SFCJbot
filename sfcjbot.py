@@ -548,7 +548,7 @@ async def tell_aliases(message):
     """Output all games and their aliases."""
     # aquire map of (full game name) to (list of all aliases for that game)
     get_games = "SELECT game, alias FROM " + message.server.id + "_games ORDER BY game"
-    sql_games_and_aliases = await DB_WRAPPER.execute(client, message.author)
+    sql_games_and_aliases = await DB_WRAPPER.execute(client, message.author, get_games)
     #print(str(datetime.now())+ ": games and aliases: "+str(sql_games_and_aliases))
     game_alias_map = {}
     for game_alias_pair in sql_games_and_aliases:
