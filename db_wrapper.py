@@ -12,7 +12,7 @@ class DB_Wrapper:
         self.db = db
         return
 
-    async def execute(self, client, member, sql_command, args=None, notify=False):
+    async def execute(self, client, member, sql_command, args=None, notify=True):
         try:
             db_connection = MySQLdb.connect(user=self.user, passwd=self.passwd, host=self.host, db=self.db, charset="utf8mb4")
             cursor = db_connection.cursor()

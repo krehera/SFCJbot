@@ -142,7 +142,7 @@ async def addalias(alias_to_add, game_title, message):
     if message.author.permissions_in(message.channel).kick_members:
         # Check if that alias already exists
         search_for_alias = "SELECT COUNT(*) FROM %s_games WHERE alias='%s' OR game='%s'"
-        search_result = await DB_WRAPPER.execute(client, message.author, search_for_alias, (message.server.id, alias_to_add, alias_to_add), True)
+        search_result = await DB_WRAPPER.execute(client, message.author, search_for_alias, (message.server.id, alias_to_add, alias_to_add))
         if search_result[0][0]:
             # Alias already exists.
             print(str(datetime.now()) + ": " + message.author.id + " wanted to add alias " + alias_to_add + " for game " + game_title + " to server " + message.server.id + " but it already existed.")
@@ -150,7 +150,7 @@ async def addalias(alias_to_add, game_title, message):
         else:
             # Check if the game they named actually exists.
             game_exist = "SELECT COUNT(*) FROM %s_games WHERE game='%s'"
-            does_game_exist = await DB_WRAPPER.execute(client, message.author, game_exist, (message.server.id, game_title,), True)
+            does_game_exist = await DB_WRAPPER.execute(client, message.author, game_exist, (message.server.id, game_title,))
             if does_game_exist[0][0] == 0:
                 print(str(datetime.now()) + ": Failed to create an alias \"" + alias_to_add + "\" for user " + message.author.id + " on server " + message.server.id + " because the game they named (" + game_title + ") didn't exist.")
                 await client.send_message(message.author, "I've never heard of " + game_title + ". Perhaps you misspelled it?")
@@ -158,7 +158,7 @@ async def addalias(alias_to_add, game_title, message):
             # Add the new alias.
             add_alias = "INSERT INTO %s_games (game, alias) VALUES ('%s','%s')"
             args = (message.server.id, game_title, alias_to_add)
-            await DB_WRAPPER.execute(client, message.author, add_alias, args, True)
+            await DB_WRAPPER.execute(client, message.author, add_alias, args)
             print(str(datetime.now()) + ": " + message.author.id + " added alias " + alias_to_add + " for game " + game_title + " in server " + message.server.id + ".")
             await client.send_message(message.author, "Added the alias \"" + alias_to_add + "\" for " + game_title + " in " + message.server.name + ".")
     else:
@@ -172,11 +172,11 @@ async def addgame(game_to_add, message):
         # Check if that game already exists
         await add_server_specific_tables_if_necessary(message)
         search_for_game = "SELECT game FROM %s_games WHERE game='%s'"
-        result = await DB_WRAPPER.execute(client, message.author, search_for_game, (message.server.id, game_to_add), True)
+        result = await DB_WRAPPER.execute(client, message.author, search_for_game, (message.server.id, game_to_add))
         if str(result) == "()":
             add_game = "INSERT INTO %s_games (game) VALUES ('%s')"
             args = (message.server.id, game_to_add)
-            await DB_WRAPPER.execute(client, message.author, add_game, args, True)
+            await DB_WRAPPER.execute(client, message.author, add_game, args)
             print(str(datetime.now()) + ": added game %s" + game_to_add + " to server " + message.server.id)
             await client.send_message(message.author, "Added game " + game_to_add + ".")
         else:
@@ -192,23 +192,23 @@ async def add_new_user_if_needed(message):
     """Create a record to recognize a new user."""
     # This method also catches nickname changes (with the lower part there)
     search_for_user = "SELECT discord_id FROM users WHERE discord_id='%s'"
-    result = await DB_WRAPPER.execute(client, message.author, search_for_user, (message.author.id, ), True)
+    result = await DB_WRAPPER.execute(client, message.author, search_for_user, (message.author.id, ))
     #print(str(datetime.now())+" add_new_user_if_needed found user: "+str(result))
     if str(result) == "()":
         add_user_query = "INSERT INTO users (discord_id) VALUES ('%s')"
-        await DB_WRAPPER.execute(client, message.author, add_user_query, (message.author.id, ), True)
+        await DB_WRAPPER.execute(client, message.author, add_user_query, (message.author.id, ))
         print(str(datetime.now()) + ": added user: " + message.author.id + " (" + message.author.name + ")")
         set_username_query = "UPDATE users SET username='%s' WHERE discord_id='%s'"
-        await DB_WRAPPER.execute(client, message.author, set_username_query, (message.author.name, message.author.id), True)
+        await DB_WRAPPER.execute(client, message.author, set_username_query, (message.author.name, message.author.id))
         print(str(datetime.now()) + ": set discord_id " + message.author.id + " to username " + message.author.name)
         return
     search_for_user = "SELECT username FROM users WHERE discord_id='%s'"
-    result = await DB_WRAPPER.execute(client, message.author, search_for_user, (message.author.id, ), True)
+    result = await DB_WRAPPER.execute(client, message.author, search_for_user, (message.author.id, ))
     print(str(datetime.now()) + ": " + str(result[0][0]) + " already exists in the DB.")
     if str(result[0][0]) != message.author.name:
         change_username_query = "UPDATE users SET username='%s' WHERE discord_id='%s'"
         args = (message.author.name, message.author.id)
-        await DB_WRAPPER.execute(client, message.author, change_username_query, args, True)
+        await DB_WRAPPER.execute(client, message.author, change_username_query, args)
         print(str(datetime.now()) + ": discord_id " + message.author.id + " changed to username " + message.author.name)
     return
 
@@ -217,17 +217,17 @@ async def add_server_specific_tables_if_necessary(message):
     # Check if the server this message came from has its own games and pools tables.
     # If not, then add them.
     search_for_games_table = "SELECT count(*) FROM information_schema.TABLES WHERE (TABLE_SCHEMA = '" + DB_DB + "') AND (TABLE_NAME = '" + message.server.id + "_games')"
-    table_exists = await DB_WRAPPER.execute(client, message.author, search_for_games_table, None, True)
+    table_exists = await DB_WRAPPER.execute(client, message.author, search_for_games_table)
     if table_exists[0][0] == 0:
         create_table = "CREATE TABLE %s_games (UID INT(11) NOT NULL PRIMARY KEY AUTO_INCREMENT, game VARCHAR(250), alias VARCHAR(50) UNIQUE, platform VARCHAR(25))"
-        table_created = await DB_WRAPPER.execute(client, message.author, create_table, (message.server.id, ), True)
+        table_created = await DB_WRAPPER.execute(client, message.author, create_table, (message.server.id, ))
         print(str(datetime.now()) + ": created games table for server " + message.server.id + ".")
 
     search_for_pools_table = "SELECT count(*) FROM information_schema.TABLES WHERE (TABLE_SCHEMA = '" + DB_DB + "') AND (TABLE_NAME = '" + message.server.id + "_pools')"
-    table_exists = await DB_WRAPPER.execute(client, message.author, search_for_pools_table, None, True)
+    table_exists = await DB_WRAPPER.execute(client, message.author, search_for_pools_table)
     if table_exists[0][0] == 0:
         create_table = "CREATE TABLE %s_pools (UID INT(11) NOT NULL PRIMARY KEY AUTO_INCREMENT, game VARCHAR(250), player VARCHAR(50))"
-        table_created = await DB_WRAPPER.execute(client, message.author, create_table, (message.server.id, ), True)
+        table_created = await DB_WRAPPER.execute(client, message.author, create_table, (message.server.id, ))
         print(str(datetime.now()) + ": created pools table for server " + message.server.id + ".")
     return
 
@@ -237,7 +237,7 @@ async def describe(message):
     discord_user = message.content.split('describe', 1)[-1].lstrip().rstrip()
     games_query = "SELECT DISTINCT game FROM %s_pools INNER JOIN users ON %s_pools.player = users.discord_id WHERE username='%s'"
     args = (message.server.id, message.server.id, discord_user)
-    users_games = await DB_WRAPPER.execute(client, message.author, games_query, args, True)
+    users_games = await DB_WRAPPER.execute(client, message.author, games_query, args)
     user_description = ""
     if users_games:
         list_of_users_games = []
@@ -247,7 +247,7 @@ async def describe(message):
     else:
         user_description = discord_user + " isn't queued up for any games.\n"
     user_description_query = "SELECT challonge, fightcade, cfn FROM users WHERE username='%s'"
-    user_description_result = await DB_WRAPPER.execute(client, message.author, user_description_query, (discord_user, ), True)
+    user_description_result = await DB_WRAPPER.execute(client, message.author, user_description_query, (discord_user, ))
     if str(user_description_result) == "()":
         await client.send_message(message.author, "I don't know anyone named " + discord_user + ".")
         return
@@ -270,14 +270,14 @@ async def get_discord_and_secondary_using_challonge(message, tournament, challon
     # First, we use the name of the game to find what Secondary username we need.
     secondary_query = "SELECT platform FROM %s_games WHERE game = '%s' or alias = '%s'"
     args = (message.server.id, str(tournament["game-name"]), str(tournament["game-name"]))
-    secondary = await DB_WRAPPER.execute(client, message.author, secondary_query, args, True)
+    secondary = await DB_WRAPPER.execute(client, message.author, secondary_query, args)
     if str(secondary) == "()":
         # this means the database did not have the data we were looking for.
         # realistically, this should probably throw an exception.
         return "I don't know how to find user info for this game."
     getDiscordAndSecondaryQuery = "SELECT discord_id, %s FROM users WHERE challonge_id = '%s'"
     d_s_args = (secondary[0][0], str(challonge_id))
-    discordAndSecondaryTuple = await DB_WRAPPER.execute(client, message.author, getDiscordAndSecondaryQuery, d_s_args, True)
+    discordAndSecondaryTuple = await DB_WRAPPER.execute(client, message.author, getDiscordAndSecondaryQuery, d_s_args)
     fallbackChallongeUsername = "Mystery User"
     if str(discordAndSecondaryTuple) == "()":
         participants = await challonge.participants.index(tournament["id"])
@@ -285,8 +285,8 @@ async def get_discord_and_secondary_using_challonge(message, tournament, challon
             if participant["id"] == challonge_id:
                 newIDquery = "UPDATE users SET challonge_id = '%s' WHERE challonge = '%s'"
                 args = str(challonge_id, str(participant["username"]))
-                await DB_WRAPPER.execute(client, message.author, newIDquery, args, True)
-                discordAndSecondaryTuple = await DB_WRAPPER.execute(client, message.author, getDiscordAndSecondaryQuery, d_s_args, True)
+                await DB_WRAPPER.execute(client, message.author, newIDquery, args)
+                discordAndSecondaryTuple = await DB_WRAPPER.execute(client, message.author, getDiscordAndSecondaryQuery, d_s_args)
                 fallbackChallongeUsername = str(participant["username"])
                 break
         if str(discordAndSecondaryTuple) == "()":
@@ -300,7 +300,7 @@ async def is_member_queued_for_game(message, game):
     print("is_member_queued_for_game called with member: " + message.author.name + " and game: " + game)
     query = "SELECT UID FROM %s_pools WHERE game='%s' AND player='%s'"
     args = (message.server.id, game, message.author.id)
-    dbresult = await DB_WRAPPER.execute(client, message.author, query, args, True)
+    dbresult = await DB_WRAPPER.execute(client, message.author, query, args)
     if str(dbresult) != "()":
         print(str(datetime.now()) + ": " + message.author.name + " was found to be queued for " + game)
         return True
@@ -318,7 +318,7 @@ async def match(message):
         return
     get_players_marked_here = "SELECT discord_id, username FROM users JOIN %s_pools WHERE discord_id = player AND game = (SELECT DISTINCT game FROM %s_games WHERE game = '%s' OR ALIAS = '%s') AND status='here' AND discord_id <> '%s'"
     args = (message.server.id, message.server.id, hopefully_a_game, hopefully_a_game, message.author.id)
-    results = await DB_WRAPPER.execute(client, message.author, get_players_marked_here, args, True)
+    results = await DB_WRAPPER.execute(client, message.author, get_players_marked_here, args)
     print(str(datetime.now()) + ": " + message.author.name + " requested a match in " + hopefully_a_game + " and found: " + str(results))
     if results is None:
         await client.send_message(message.channel, 'Sorry, I couldn\'t find a match for you.\nDed gaem lmao')
@@ -347,7 +347,7 @@ async def match_random_game(message):
     # first, we make a list of all the games the member is queued for.
     find_games = "SELECT game FROM %s_pools WHERE player ='%s'"
     args = (message.server.id, message.author.id)
-    users_games = await DB_WRAPPER.execute(client, message.author, find_games, args, True)
+    users_games = await DB_WRAPPER.execute(client, message.author, find_games, args)
     print("matching random game for: " + message.author.name)
     print("users_games: " + str(users_games))
     games_to_players = {}
@@ -356,7 +356,7 @@ async def match_random_game(message):
         for game in users_games:
             get_other_players = "SELECT discord_id, username FROM users JOIN %s_pools WHERE discord_id=player AND game='%s' AND status='here' AND discord_id<>'%s'"
             args = (message.server.id, game, message.author.id)
-            temp = await DB_WRAPPER.execute(client, message.author, get_other_players, args, True)
+            temp = await DB_WRAPPER.execute(client, message.author, get_other_players, args)
             print("match_random_game match result: " + str(temp))
             if temp:
                 players = []
@@ -427,14 +427,14 @@ async def queue(message, command):
     await add_new_user_if_needed(message)
     find_game = "SELECT game FROM %s_games WHERE game='%s' OR alias='%s'"
     args = (message.server.id, command, command)
-    game = await DB_WRAPPER.execute(client, message.author, find_game, args, True)
+    game = await DB_WRAPPER.execute(client, message.author, find_game, args)
     if str(game) != "()":
         game = game[0][0]
         already_queued = await is_member_queued_for_game(message, game)
         if not already_queued:
             queue_query = "INSERT INTO %s_pools (game, player) VALUES ('%s', '%s')"
             args = (message.server.id, game, message.author.id)
-            await DB_WRAPPER.execute(client, message.author, queue_query, args, True)
+            await DB_WRAPPER.execute(client, message.author, queue_query, args)
             print(str(datetime.now()) + ": added " + message.author.name + " to the queue for " + game)
             await client.send_message(message.author, "Added you to the queue for " + game)
         else:
@@ -452,7 +452,7 @@ async def removealias(alias_to_remove, message):
     if message.author.permissions_in(message.channel).kick_members:
         remove_alias_query = "DELETE FROM %s_games WHERE alias='%s'"
         args = (message.server.id, alias_to_remove)
-        result = await DB_WRAPPER.execute(client, message.author, remove_alias_query, args, True)
+        result = await DB_WRAPPER.execute(client, message.author, remove_alias_query, args)
         print(str(datetime.now()) + ": deleted the alias " + alias_to_remove + " from server " + message.server.id + "'")
         await client.send_message(message.author, "Removed the alias " + alias_to_remove + " from " + message.server.name + ".")
     else:
@@ -466,7 +466,7 @@ async def removegame(game_to_remove, message):
     if message.author.permissions_in(message.channel).kick_members:
         remove_game_query = "DELETE FROM %s_games WHERE game='%s' OR alias='%s'"
         args = (message.server.id, game_to_remove, game_to_remove)
-        result = await DB_WRAPPER.execute(client, message.author, remove_game_query, args, True)
+        result = await DB_WRAPPER.execute(client, message.author, remove_game_query, args)
         print(str(datetime.now()) + ": removed " + game_to_remove + " from server " + message.server.id + ".")
         await client.send_message(message.author, "Removed " + game_to_remove + " from " + message.server.name + ".")
 
@@ -474,7 +474,7 @@ async def removegame(game_to_remove, message):
         # TODO First we make a list of all users that were queued for that game on that server (so we can notify them they were dequeued)
         unqueue = "DELETE FROM %s_pools WHERE game='%s'"
         args = (message.server.id, game_to_remove)
-        result = await DB_WRAPPER.execute(client, message.author, unqueue, args, True)
+        result = await DB_WRAPPER.execute(client, message.author, unqueue, args)
         print(str(datetime.now()) + ": foribly dequeued users for " + game_to_remove + " on server " + message.server.id + ".")
         # TODO consider sending a message to the server or users about this.
     else:
@@ -491,7 +491,7 @@ async def set_secondary(message, thing_to_set):
     await add_new_user_if_needed(message)
     query = "UPDATE users SET %s = '%s' WHERE discord_id = '%s'"
     args = (thing_to_set, hopefully_a_valid_input, message.author.id)
-    result = await DB_WRAPPER.execute(client, message.author, query, args, True)
+    result = await DB_WRAPPER.execute(client, message.author, query, args)
     if result is None:
         time = str(datetime.now())
         print(time + ": failed to set " + message.author.name + "'s " + thing_to_set + " to " + hopefully_a_valid_input + ".")
@@ -548,7 +548,7 @@ async def tell_aliases(message):
     """Output all games and their aliases."""
     # aquire map of (full game name) to (list of all aliases for that game)
     get_games = "SELECT game, alias FROM " + message.server.id + "_games ORDER BY game"
-    sql_games_and_aliases = await DB_WRAPPER.execute(client, message.author, None, True)
+    sql_games_and_aliases = await DB_WRAPPER.execute(client, message.author)
     #print(str(datetime.now())+ ": games and aliases: "+str(sql_games_and_aliases))
     game_alias_map = {}
     for game_alias_pair in sql_games_and_aliases:
@@ -584,13 +584,13 @@ async def unqueue(message, command):
     for hopefully_game in hopefully_list_of_games:
         is_queued = "SELECT game FROM %s_games WHERE (game='%s' OR alias='%s')"
         args = (message.server.id, hopefully_game, hopefully_game)
-        game = await DB_WRAPPER.execute(client, message.author, is_queued, args, True)
+        game = await DB_WRAPPER.execute(client, message.author, is_queued, args)
         if str(game) != "()":
             already_queued = await is_member_queued_for_game(message, game[0][0])
             if already_queued:
                 unqueue_query = "DELETE FROM %s_pools WHERE game='%s' AND player='%s'"
                 args = (message.server.id, game[0][0], message.author.id)
-                await DB_WRAPPER.execute(client, message.author, unqueue_query, args, True)
+                await DB_WRAPPER.execute(client, message.author, unqueue_query, args)
                 print(str(datetime.now()) + ": removed " + message.author.name + " from the queue for " + game[0][0])
                 await client.send_message(message.author, "Removed you from the queue for " + hopefully_game)
             else:
